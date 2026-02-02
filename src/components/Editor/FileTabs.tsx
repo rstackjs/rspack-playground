@@ -75,10 +75,11 @@ export default function FileTabs({
           {files.map((file, index) => (
             <div
               key={file.filename}
+              data-filename={file.filename}
               className={cn(
                 "group flex items-center space-x-2 px-3 py-2 border-r cursor-pointer hover:bg-accent/50 transition-colors flex-shrink-0",
                 activeIndex === index &&
-                  "bg-background border-b-2 border-b-primary",
+                "bg-background border-b-2 border-b-primary",
               )}
               onClick={() => onFileSelect(index)}
             >

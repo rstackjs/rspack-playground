@@ -10,7 +10,7 @@ const preset: SourcePreset = {
 
 export default {
   mode: "development",
-  devtool: false,
+  devtool: 'source-map',
   entry: "./src/main.jsx",
   resolve: {
     extensions: [".js", ".jsx", ".json"],

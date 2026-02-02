@@ -2,6 +2,7 @@ import MonacoEditor from "@monaco-editor/react";
 import FileTabs from "@/components/Editor/FileTabs";
 import { useTheme } from "@/components/ThemeProvider";
 import type { SourceFile } from "@/store/bundler";
+import type * as Monaco from "monaco-editor";
 
 interface CodeEditorProps {
   files: SourceFile[];
@@ -12,6 +13,7 @@ interface CodeEditorProps {
   onFileDelete?: (index: number) => void;
   onFileRename?: (index: number, newName: string) => void;
   onContentChange?: (index: number, content: string) => void;
+  onEditorMount?: (editor: Monaco.editor.IStandaloneCodeEditor) => void;
 }
 
 export default function CodeEditor({
@@ -23,6 +25,7 @@ export default function CodeEditor({
   onFileDelete,
   onFileRename,
   onContentChange,
+  onEditorMount,
 }: CodeEditorProps) {
   const { theme } = useTheme();
 
@@ -100,7 +103,7 @@ export default function CodeEditor({
           language={getLanguage(currentFile.filename)}
           theme={theme === "dark" ? "vs-dark" : "vs"}
           onChange={handleContentChange}
-          onMount={(_, monaco) => {
+          onMount={(editor, monaco) => {
             const jsOptions =
               monaco.languages.typescript.javascriptDefaults.getCompilerOptions();
             monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
@@ -120,6 +123,11 @@ export default function CodeEditor({
               module: monaco.languages.typescript.ModuleKind.ESNext,
               target: monaco.languages.typescript.ScriptTarget.ESNext,
             });
+
+            // Call the onEditorMount callback with the editor instance
+            if (onEditorMount) {
+              onEditorMount(editor);
+            }
           }}
           options={{
             readOnly: readonly,
@@ -137,3 +145,4 @@ export default function CodeEditor({
     </div>
   );
 }
+

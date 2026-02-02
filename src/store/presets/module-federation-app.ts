@@ -10,7 +10,7 @@ const preset: SourcePreset = {
 
 export default {
 mode: "development",
-  devtool: false,
+  devtool: 'source-map',
   entry: "./index.js",
   output: {
     // set uniqueName explicitly to make react-refresh works

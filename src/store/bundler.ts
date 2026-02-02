@@ -14,6 +14,7 @@ export interface BundleResult {
   duration: number;
   errors: string[];
   warnings: string[];
+  sourcemaps: Map<string, string>; // output filename -> sourcemap JSON
 }
 
 function getInitFiles() {
@@ -38,7 +39,7 @@ export const enableFormatCode = atom(true);
 // Version
 export const availableVersionsAtom = atom(async () => {
   const res = await fetch(
-    "https://registry.npmjs.org/@rspack/binding-wasm32-wasi",
+    "https://registry.npmjs.org/@rspack/binding-wasm32-wasi"
   );
   const data = await res.json();
   return Object.keys(data.versions).sort((a, b) => {
@@ -72,5 +73,5 @@ export const rspackVersionAtom = atom(
   },
   (_, set, newVersion: string) => {
     set(overwrittenRspackVersionAtom, newVersion);
-  },
+  }
 );
