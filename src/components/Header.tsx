@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Clock, RotateCcw, Share2 } from "lucide-react";
+import { Clock, Download, RotateCcw, Share2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import Github from "@/components/icon/Github";
@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import useBundle from "@/hooks/use-bundle";
+import { useDownloadProject } from "@/hooks/use-download";
 import { getShareUrl, type ShareData } from "@/lib/share";
 import {
   availableVersionsAtom,
@@ -52,6 +53,7 @@ export default function Header() {
   const [inputFiles] = useAtom(inputFilesAtom);
   const setInputFiles = useSetAtom(inputFilesAtom);
   const handleBundle = useBundle();
+  const downloadProject = useDownloadProject();
 
   const [selectedPreset, setSelectedPreset] = useState(presets[0].name);
 
@@ -151,6 +153,15 @@ export default function Header() {
           >
             <Share2 className="h-4 w-4" />
             <span>Share</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadProject}
+            title="Download project (Source + Dist)"
+          >
+            <Download className="h-4 w-4" />
+            <span>Download</span>
           </Button>
           <Preview />
           <div className="flex items-center space-x-2 hidden">

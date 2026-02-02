@@ -1,2 +1,5 @@
+packages:
+  - "."
+  - "sw"
 ignoredBuiltDependencies:
   - "@tailwindcss/oxide"

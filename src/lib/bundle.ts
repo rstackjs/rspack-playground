@@ -15,7 +15,7 @@ async function loadConfig(content: string): Promise<RspackOptions> {
       return rspackAPI;
     }
     throw new Error(
-      "Only support for importing '@rspack/core' or '@rspack/browser",
+      "Only support for importing '@rspack/core' or '@rspack/browser"
     );
   }
   const module: { exports: { default: RspackOptions } } = {
@@ -53,6 +53,7 @@ export async function bundle(files: SourceFile[]): Promise<BundleResult> {
       success: false,
       errors: [(e as Error).message],
       warnings: [],
+      sourcemaps: new Map(),
     };
   }
 
@@ -68,6 +69,7 @@ export async function bundle(files: SourceFile[]): Promise<BundleResult> {
           success: false,
           errors: [err.message],
           warnings: [],
+          sourcemaps: new Map(),
         });
         return;
       }
@@ -75,6 +77,7 @@ export async function bundle(files: SourceFile[]): Promise<BundleResult> {
       const endTime = performance.now();
       const output: SourceFile[] = [];
       const formattedOutput: SourceFile[] = [];
+      const sourcemaps = new Map<string, string>();
       const fileJSON = builtinMemFs.volume.toJSON() as Record<
         string,
         string | undefined
@@ -89,12 +92,25 @@ export async function bundle(files: SourceFile[]): Promise<BundleResult> {
           !inputFileJSON[filenameWithoutPrefixSlash] &&
           !filenameWithoutPrefixSlash.includes("rspack.lock")
         ) {
-          output.push({ filename, text });
-          if (filenameWithoutPrefixSlash.endsWith(".js")) {
-            const formattedText = await format(text);
-            formattedOutput.push({ filename, text: formattedText });
+          // Extract sourcemap files separately
+          if (filenameWithoutPrefixSlash.endsWith(".map")) {
+            // Map from the original JS filename to sourcemap content
+            const jsFilename = filename.replace(/\.map$/, "");
+            console.log(
+              "[Sourcemap] Found sourcemap for:",
+              jsFilename,
+              "length:",
+              text.length
+            );
+            sourcemaps.set(jsFilename, text);
           } else {
-            formattedOutput.push({ filename, text });
+            output.push({ filename, text });
+            if (filenameWithoutPrefixSlash.endsWith(".js")) {
+              const formattedText = await format(text);
+              formattedOutput.push({ filename, text: formattedText });
+            } else {
+              formattedOutput.push({ filename, text });
+            }
           }
         }
       }
@@ -103,7 +119,7 @@ export async function bundle(files: SourceFile[]): Promise<BundleResult> {
         f1.length !== f2.length ? f1.length - f2.length : f1.localeCompare(f2);
       output.sort((a, b) => filenameComparator(a.filename, b.filename));
       formattedOutput.sort((a, b) =>
-        filenameComparator(a.filename, b.filename),
+        filenameComparator(a.filename, b.filename)
       );
 
       const statsJson = stats?.toJson({
@@ -119,6 +135,7 @@ export async function bundle(files: SourceFile[]): Promise<BundleResult> {
         success: true,
         errors: statsJson?.errors?.map((err) => err.message) || [],
         warnings: statsJson?.warnings?.map((warning) => warning.message) || [],
+        sourcemaps,
       });
     });
   });
