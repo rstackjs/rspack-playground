@@ -7,12 +7,12 @@ export interface ShareData {
 
 // Share functionality
 export const serializeShareData = (data: ShareData): string => {
-  return btoa(JSON.stringify(data));
+  return btoa(encodeURIComponent(JSON.stringify(data)));
 };
 
 export const deserializeShareData = (base64: string): ShareData | null => {
   try {
-    const json = atob(base64);
+    const json = decodeURIComponent(atob(base64));
     const data = JSON.parse(json);
 
     // Validate the data structure
