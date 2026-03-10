@@ -5,9 +5,60 @@ import {
   type RspackOptions,
   rspack,
 } from "@rspack/browser";
-import type { BundleResult, SourceFile } from "@/store/bundler";
+import type {
+  BundleResult,
+  RspackDependency,
+  RspackModuleDeps,
+  SourceFile,
+} from "@/store/bundler";
 import { RSPACK_CONFIG } from "@/store/common";
 import { format } from "./format";
+
+/**
+ * Safely serialize a dependency/block object from rspack internals.
+ * Handles circular references, functions, and huge internal objects.
+ */
+function getRawData(obj: any): any {
+  const seen = new WeakSet();
+
+  const serialize = (val: any): any => {
+    if (val === null || val === undefined) return val;
+    if (typeof val !== "object" && typeof val !== "function") return val;
+    if (typeof val === "function") return undefined;
+    if (seen.has(val)) return "[Circular]";
+    seen.add(val);
+
+    if (Array.isArray(val)) return val.map(serialize);
+    if (val instanceof Set) return Array.from(val).map(serialize);
+    if (val instanceof Map) {
+      const o: Record<string, any> = {};
+      for (const [k, v] of val) o[String(k)] = serialize(v);
+      return o;
+    }
+
+    const result: Record<string, any> = {};
+    const allKeys = new Set<string>();
+    let cur = val;
+    while (cur && cur !== Object.prototype) {
+      for (const key of Object.getOwnPropertyNames(cur)) allKeys.add(key);
+      cur = Object.getPrototypeOf(cur);
+    }
+
+    for (const key of allKeys) {
+      if (key === "constructor" || key.startsWith("_") || key === "compilation") continue;
+      try {
+        const v = val[key];
+        if (typeof v === "function") continue;
+        result[key] = serialize(v);
+      } catch {
+        // skip inaccessible properties
+      }
+    }
+    return result;
+  };
+
+  return serialize(obj);
+}
 
 async function loadConfig(content: string): Promise<RspackOptions> {
   function requireRspack(name: string) {
@@ -54,8 +105,77 @@ export async function bundle(files: SourceFile[]): Promise<BundleResult> {
       errors: [(e as Error).message],
       warnings: [],
       sourcemaps: new Map(),
+      modules: [],
     };
   }
+
+  // Inject a plugin to extract dependency data from the compilation
+  let extractedModules: RspackModuleDeps[] = [];
+
+  function extractDep(dep: any, moduleGraph: any): RspackDependency {
+    const raw = getRawData(dep);
+    try {
+      const target = moduleGraph?.getModule?.(dep);
+      if (target) {
+        const targetPath = target.resource || target.identifier?.() || "";
+        raw.targetModule = targetPath;
+        // Strip leading slash to match input file tab names
+        raw.targetModuleName = targetPath.startsWith("/")
+          ? targetPath.slice(1)
+          : targetPath;
+      }
+    } catch { /* ignore */ }
+    return raw;
+  }
+
+  const depsPlugin = {
+    apply(compiler: any) {
+      compiler.hooks.compilation.tap("DepsExtractor", (compilation: any) => {
+        compilation.hooks.optimizeChunkModules.tap(
+          "DepsExtractor",
+          () => {
+            try {
+              const modules = compilation.modules;
+              const moduleGraph = compilation.moduleGraph;
+              if (!modules) return;
+
+              extractedModules = [...modules].map((mod: any) => {
+                const modulePath = mod.resource || mod.identifier?.() || "";
+
+                const deps: RspackDependency[] = (mod.dependencies || []).map(
+                  (dep: any) => extractDep(dep, moduleGraph),
+                );
+
+                const presentationalDeps: RspackDependency[] = (mod.presentationalDependencies || []).map(
+                  (dep: any) => extractDep(dep, moduleGraph),
+                );
+
+                const blocks: any[] = (mod.blocks || []).map((block: any) => {
+                  const serialized = getRawData(block);
+                  serialized.dependencies = (block.dependencies || []).map(
+                    (dep: any) => extractDep(dep, moduleGraph),
+                  );
+                  return serialized;
+                });
+
+                return {
+                  path: modulePath,
+                  name: modulePath,
+                  deps,
+                  presentationalDeps,
+                  blocks,
+                };
+              });
+            } catch (e) {
+              console.warn("[DepsExtractor] Failed to extract deps:", e);
+            }
+          },
+        );
+      });
+    },
+  };
+
+  options.plugins = [...(options.plugins || []), depsPlugin];
 
   const startTime = performance.now();
   return new Promise((resolve) => {
@@ -70,6 +190,7 @@ export async function bundle(files: SourceFile[]): Promise<BundleResult> {
           errors: [err.message],
           warnings: [],
           sourcemaps: new Map(),
+          modules: [],
         });
         return;
       }
@@ -136,6 +257,7 @@ export async function bundle(files: SourceFile[]): Promise<BundleResult> {
         errors: statsJson?.errors?.map((err) => err.message) || [],
         warnings: statsJson?.warnings?.map((warning) => warning.message) || [],
         sourcemaps,
+        modules: extractedModules,
       });
     });
   });

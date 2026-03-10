@@ -7,6 +7,31 @@ export interface SourceFile {
   text: string;
 }
 
+export interface RspackDependency {
+  type?: string;
+  targetModule?: string;
+  targetModuleName?: string;
+  userRequest?: string;
+  loc?: {
+    start: { line: number; column: number };
+    end: { line: number; column: number };
+  };
+  [key: string]: any;
+}
+
+export interface RspackBlock {
+  dependencies?: RspackDependency[];
+  [key: string]: any;
+}
+
+export interface RspackModuleDeps {
+  path: string;
+  name: string;
+  deps: RspackDependency[];
+  presentationalDeps?: RspackDependency[];
+  blocks?: RspackBlock[];
+}
+
 export interface BundleResult {
   success: boolean;
   output: SourceFile[];
@@ -15,6 +40,7 @@ export interface BundleResult {
   errors: string[];
   warnings: string[];
   sourcemaps: Map<string, string>; // output filename -> sourcemap JSON
+  modules: RspackModuleDeps[]; // dependency data
 }
 
 function getInitFiles() {
