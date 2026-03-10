@@ -1,35 +1,11 @@
 import { atom } from "jotai";
 import { deserializeShareData } from "@/lib/share";
 import { PresetBasicLibrary } from "./presets";
+import type { RspackModuleDeps } from "@/lib/bundle/dependency";
 
 export interface SourceFile {
   filename: string;
   text: string;
-}
-
-export interface RspackDependency {
-  type?: string;
-  targetModule?: string;
-  targetModuleName?: string;
-  userRequest?: string;
-  loc?: {
-    start: { line: number; column: number };
-    end: { line: number; column: number };
-  };
-  [key: string]: any;
-}
-
-export interface RspackBlock {
-  dependencies?: RspackDependency[];
-  [key: string]: any;
-}
-
-export interface RspackModuleDeps {
-  path: string;
-  name: string;
-  deps: RspackDependency[];
-  presentationalDeps?: RspackDependency[];
-  blocks?: RspackBlock[];
 }
 
 export interface BundleResult {
