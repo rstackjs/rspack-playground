@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  '@rspack/browser':
+    hash: 492567773ebafa765b885423511c26caa7147dddce4c4e536bac004c48a8db1c
+    path: patches/@rspack__browser.patch
+
 importers:
 
   .:
@@ -37,7 +42,7 @@ importers:
         version: 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@rspack/browser':
         specifier: 2.0.0-beta.6
-        version: 2.0.0-beta.6(@swc/helpers@0.5.19)
+        version: 2.0.0-beta.6(patch_hash=492567773ebafa765b885423511c26caa7147dddce4c4e536bac004c48a8db1c)(@swc/helpers@0.5.19)
       ansis:
         specifier: ^4.2.0
         version: 4.2.0
@@ -2259,7 +2264,7 @@ snapshots:
       '@rspack/binding-win32-ia32-msvc': 1.7.8
       '@rspack/binding-win32-x64-msvc': 1.7.8
 
-  '@rspack/browser@2.0.0-beta.6(@swc/helpers@0.5.19)':
+  '@rspack/browser@2.0.0-beta.6(patch_hash=492567773ebafa765b885423511c26caa7147dddce4c4e536bac004c48a8db1c)(@swc/helpers@0.5.19)':
     dependencies:
       '@napi-rs/wasm-runtime': 1.0.7
       '@rspack/lite-tapable': 1.1.0

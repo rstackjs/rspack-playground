@@ -1,0 +1,33 @@
+diff --git a/dist/rspack.wasi-browser.js b/dist/rspack.wasi-browser.js
+index e0a6df08d3cef37074d5f9c3f8d9c03d0c77c1c1..3e6af74eef172095c58c9a11fdebcb128997f58f 100644
+--- a/dist/rspack.wasi-browser.js
++++ b/dist/rspack.wasi-browser.js
+@@ -17,7 +17,17 @@ const __wasi = new __WASI({
+   },
+ })
+ 
+-const __wasmUrl = window.RSPACK_WASM_URL || new URL('./rspack.wasm32-wasi.wasm', import.meta.url).href
++async function loadCompressedWasm(url) {
++  const response = await fetch(url);
++  const ds = new DecompressionStream('gzip');
++  const decompressedStream = response.body.pipeThrough(ds);
++  const decompressedResponse = new Response(decompressedStream, {
++    headers: { 'Content-Type': 'application/wasm' }
++  });
++
++  return decompressedResponse.arrayBuffer()
++}
++
+ const __emnapiContext = __emnapiGetDefaultContext()
+ __emnapiContext.feature.Buffer = Buffer
+ 
+@@ -27,7 +37,8 @@ const __sharedMemory = new WebAssembly.Memory({
+   shared: true,
+ })
+ 
+-const __wasmFile = await fetch(__wasmUrl).then((res) => res.arrayBuffer())
++const __wasmUrl = window.RSPACK_WASM_URL || new URL('./rspack.wasm32-wasi.wasm', import.meta.url).href
++const __wasmFile = process.env.NODE_ENV === "production" ? await loadCompressedWasm(__wasmUrl) : await fetch(__wasmUrl).then((res) => res.arrayBuffer())
+ 
+ const {
+   instance: __napiInstance,
