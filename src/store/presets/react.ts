@@ -18,7 +18,7 @@ export default {
   module: {
     rules: [
       {
-        test: /\.jsx$/,
+        test: /.jsx$/,
         use: {
           loader: "builtin:swc-loader",
           options: {
@@ -41,7 +41,7 @@ export default {
         type: "javascript/auto",
       },
       {
-        test: /\.(png|svg|jpg)$/,
+        test: /.(png|svg|jpg)$/,
         type: "asset/resource",
       },
     ],

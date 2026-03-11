@@ -22,7 +22,10 @@
     "enabled": true,
     "rules": {
       "recommended": true,
-      "a11y": "off"
+      "a11y": "off",
+      "complexity": {
+        "noImportantStyles": "off"
+      }
     }
   },
   "css": {

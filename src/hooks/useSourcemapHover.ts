@@ -230,10 +230,10 @@ export function useSourcemapHover({
           const colorIndex =
             match.origLine !== null && match.origCol !== null
               ? getColorIndexForSegment(
-                match.source,
-                match.origLine,
-                match.origCol,
-              )
+                  match.source,
+                  match.origLine,
+                  match.origCol,
+                )
               : undefined;
 
           const mappedPos: MappedPosition = {
