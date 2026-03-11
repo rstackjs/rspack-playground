@@ -44,13 +44,13 @@ export function useSegmentDecorations({
       if (inputEditor && inputDecorationsRef.current.length > 0) {
         inputDecorationsRef.current = inputEditor.deltaDecorations(
           inputDecorationsRef.current,
-          []
+          [],
         );
       }
       if (outputEditor && outputDecorationsRef.current.length > 0) {
         outputDecorationsRef.current = outputEditor.deltaDecorations(
           outputDecorationsRef.current,
-          []
+          [],
         );
       }
       segmentColorMap.clear();
@@ -203,11 +203,11 @@ export function useSegmentDecorations({
       // Apply decorations
       inputDecorationsRef.current = inputEditor.deltaDecorations(
         inputDecorationsRef.current,
-        inputDecorations
+        inputDecorations,
       );
       outputDecorationsRef.current = outputEditor.deltaDecorations(
         outputDecorationsRef.current,
-        outputDecorations
+        outputDecorations,
       );
     } catch {
       // Silently ignore sourcemap parsing errors
@@ -230,7 +230,7 @@ export function useSegmentDecorations({
 export function getColorIndexForSegment(
   filename: string,
   line: number,
-  column: number
+  column: number,
 ): number | undefined {
   // Try exact match first
   const key = getSegmentKey(filename, line, column);

@@ -153,29 +153,29 @@ function OutputPanel({
               </Panel>
               {(bundleResult.errors.length > 0 ||
                 bundleResult.warnings.length > 0) && (
-                  <>
-                    <PanelResizeHandle className="h-1 bg-border hover:bg-border/80" />
-                    <Panel
-                      id="output-errors"
-                      order={1}
-                      minSize={0}
-                      maxSize={33.33}
-                    >
-                      <pre className="p-2 h-full overflow-y-auto text-wrap">
-                        {bundleResult.errors.map((err) => (
-                          <div key={err} className="text-red-500">
-                            {ansis.strip(err)}
-                          </div>
-                        ))}
-                        {bundleResult.warnings.map((warning) => (
-                          <div key={warning} className="text-orange-300">
-                            {ansis.strip(warning)}
-                          </div>
-                        ))}
-                      </pre>
-                    </Panel>
-                  </>
-                )}
+                <>
+                  <PanelResizeHandle className="h-1 bg-border hover:bg-border/80" />
+                  <Panel
+                    id="output-errors"
+                    order={1}
+                    minSize={0}
+                    maxSize={33.33}
+                  >
+                    <pre className="p-2 h-full overflow-y-auto text-wrap">
+                      {bundleResult.errors.map((err) => (
+                        <div key={err} className="text-red-500">
+                          {ansis.strip(err)}
+                        </div>
+                      ))}
+                      {bundleResult.warnings.map((warning) => (
+                        <div key={warning} className="text-orange-300">
+                          {ansis.strip(warning)}
+                        </div>
+                      ))}
+                    </pre>
+                  </Panel>
+                </>
+              )}
             </PanelGroup>
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -306,20 +306,23 @@ function Editor() {
 
   const ResizeHandle = ({ isVertical }: { isVertical: boolean }) => (
     <PanelResizeHandle
-      className={`${isVertical
-        ? "h-1 bg-border hover:bg-border/80"
-        : "w-1 bg-border hover:bg-border/80"
-        } transition-colors relative group`}
+      className={`${
+        isVertical
+          ? "h-1 bg-border hover:bg-border/80"
+          : "w-1 bg-border hover:bg-border/80"
+      } transition-colors relative group`}
     >
       <div
-        className={`absolute bg-border group-hover:bg-border/80 transition-colors ${isVertical ? "inset-x-0 top-1/2 h-0.5" : "inset-y-0 left-1/2 w-0.5"
-          }`}
+        className={`absolute bg-border group-hover:bg-border/80 transition-colors ${
+          isVertical ? "inset-x-0 top-1/2 h-0.5" : "inset-y-0 left-1/2 w-0.5"
+        }`}
       />
       <div
-        className={`absolute bg-border group-hover:bg-border/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${isVertical
-          ? "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-1"
-          : "inset-y-0 left-1/2 -translate-x-1/2 w-1 h-8"
-          }`}
+        className={`absolute bg-border group-hover:bg-border/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${
+          isVertical
+            ? "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-1"
+            : "inset-y-0 left-1/2 -translate-x-1/2 w-1 h-8"
+        }`}
       />
     </PanelResizeHandle>
   );

@@ -15,7 +15,7 @@ async function loadConfig(content: string): Promise<RspackOptions> {
       return rspackAPI;
     }
     throw new Error(
-      "Only support for importing '@rspack/core' or '@rspack/browser"
+      "Only support for importing '@rspack/core' or '@rspack/browser",
     );
   }
   const module: { exports: { default: RspackOptions } } = {
@@ -100,7 +100,7 @@ export async function bundle(files: SourceFile[]): Promise<BundleResult> {
               "[Sourcemap] Found sourcemap for:",
               jsFilename,
               "length:",
-              text.length
+              text.length,
             );
             sourcemaps.set(jsFilename, text);
           } else {
@@ -119,7 +119,7 @@ export async function bundle(files: SourceFile[]): Promise<BundleResult> {
         f1.length !== f2.length ? f1.length - f2.length : f1.localeCompare(f2);
       output.sort((a, b) => filenameComparator(a.filename, b.filename));
       formattedOutput.sort((a, b) =>
-        filenameComparator(a.filename, b.filename)
+        filenameComparator(a.filename, b.filename),
       );
 
       const statsJson = stats?.toJson({

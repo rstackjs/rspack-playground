@@ -96,13 +96,17 @@ export default function SourcemapOverlay({
     let lineHeight = 20; // sensible default
     try {
       // Try to get from editor options
-      const optionValue = outputEditor.getOption(66 /* EditorOption.lineHeight */);
-      if (typeof optionValue === 'number' && optionValue > 0) {
+      const optionValue = outputEditor.getOption(
+        66 /* EditorOption.lineHeight */,
+      );
+      if (typeof optionValue === "number" && optionValue > 0) {
         lineHeight = optionValue;
       } else {
         // Fallback: calculate from font size
-        const fontSize = outputEditor.getOption(52 /* EditorOption.fontSize */) as number;
-        if (typeof fontSize === 'number' && fontSize > 0) {
+        const fontSize = outputEditor.getOption(
+          52 /* EditorOption.fontSize */,
+        ) as number;
+        if (typeof fontSize === "number" && fontSize > 0) {
           lineHeight = Math.round(fontSize * 1.5);
         }
       }
@@ -117,7 +121,7 @@ export default function SourcemapOverlay({
       column: number, // 0-based
       editorDom: HTMLElement,
       panelRect: DOMRect,
-      columnEnd?: number // 0-based
+      columnEnd?: number, // 0-based
     ): BoxPosition | null => {
       const model = editor.getModel();
       if (!model) return null;
@@ -164,7 +168,7 @@ export default function SourcemapOverlay({
       const finalWidth = Math.max(width, 4);
 
       // Make the box tighter around text (don't fill full line height)
-      // Usually text is centered in line height. 
+      // Usually text is centered in line height.
       // Let's take 85% of line height and center it.
       const boxHeight = Math.floor(lineHeight * 0.85);
       const verticalPadding = Math.floor((lineHeight - boxHeight) / 2);
@@ -190,7 +194,7 @@ export default function SourcemapOverlay({
         mappedPosition.generatedColumn,
         outputEditorDom,
         canvasRect,
-        mappedPosition.generatedColumnEnd
+        mappedPosition.generatedColumnEnd,
       );
 
       // Check if source file is visible
@@ -202,7 +206,7 @@ export default function SourcemapOverlay({
           mappedPosition.originalColumn,
           inputEditorDom,
           canvasRect,
-          mappedPosition.originalColumnEnd
+          mappedPosition.originalColumnEnd,
         );
       } else {
         // Source file not visible - try to point to specific file tab
@@ -210,7 +214,7 @@ export default function SourcemapOverlay({
         // IMPORTANT: Scope to inputPanel to avoid finding output tabs
         const selector = `[data-filename="${mappedPosition.originalFilename.replace(
           /"/g,
-          '\\"'
+          '\\"',
         )}"]`;
         const tabElement = inputPanel.querySelector(selector);
 
@@ -263,7 +267,7 @@ export default function SourcemapOverlay({
         mappedPosition.originalColumn,
         inputEditorDom,
         canvasRect,
-        mappedPosition.originalColumnEnd
+        mappedPosition.originalColumnEnd,
       );
 
       // Get output position
@@ -273,7 +277,7 @@ export default function SourcemapOverlay({
         mappedPosition.generatedColumn,
         outputEditorDom,
         canvasRect,
-        mappedPosition.generatedColumnEnd
+        mappedPosition.generatedColumnEnd,
       );
     }
 

@@ -24,5 +24,10 @@
       "recommended": true,
       "a11y": "off"
     }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
   }
 }

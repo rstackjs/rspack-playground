@@ -40,7 +40,7 @@ export function getColorForSegment(index: number): SegmentColor {
 export function getColorIndex(
   source: string,
   line: number,
-  column: number
+  column: number,
 ): number {
   // Simple hash combining source, line, and column
   let hash = 0;

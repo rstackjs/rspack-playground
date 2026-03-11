@@ -67,7 +67,7 @@ export function useSourcemapHover({
         setFormatCode(false);
       }
     },
-    [setEnableSourcemap, formatCode, setFormatCode]
+    [setEnableSourcemap, formatCode, setFormatCode],
   );
 
   // Update sourcemap data when bundle result changes
@@ -156,7 +156,7 @@ export function useSourcemapHover({
         return null;
       }
     },
-    [bundleResult?.sourcemaps]
+    [bundleResult?.sourcemaps],
   );
 
   // Handle hover on output editor - map to source
@@ -208,7 +208,7 @@ export function useSourcemapHover({
 
         for (const c of candidates) {
           targetFile = inputFiles.find(
-            (f) => f.filename === c || c.endsWith(f.filename)
+            (f) => f.filename === c || c.endsWith(f.filename),
           );
           if (targetFile) break;
         }
@@ -224,7 +224,7 @@ export function useSourcemapHover({
           const colorIndex = getColorIndexForSegment(
             match.source,
             match.origLine,
-            match.origCol
+            match.origCol,
           );
 
           const mappedPos: MappedPosition = {
@@ -260,7 +260,7 @@ export function useSourcemapHover({
       getConsumer,
       inputFiles,
       activeInputIndex,
-    ]
+    ],
   );
 
   // Handle hover on input editor - map to output
@@ -347,7 +347,7 @@ export function useSourcemapHover({
           const colorIndex = getColorIndexForSegment(
             sourceKey,
             match.origLine,
-            match.origCol
+            match.origCol,
           );
 
           const mappedPos: MappedPosition = {
@@ -387,7 +387,7 @@ export function useSourcemapHover({
       getConsumer,
       setHoverPosition,
       setMappedPosition,
-    ]
+    ],
   );
 
   // ... (rest of file: handleMouseLeave, effects)
@@ -413,12 +413,12 @@ export function useSourcemapHover({
           if (e.target.position) {
             handleInputHover(e.target.position);
           }
-        })
+        }),
       );
       disposables.push(
         inputEditor.onMouseLeave(() => {
           handleMouseLeave();
-        })
+        }),
       );
     }
 
@@ -428,12 +428,12 @@ export function useSourcemapHover({
           if (e.target.position) {
             handleOutputHover(e.target.position);
           }
-        })
+        }),
       );
       disposables.push(
         outputEditor.onMouseLeave(() => {
           handleMouseLeave();
-        })
+        }),
       );
     }
 
