@@ -1,8 +1,8 @@
-import { useEffect, useRef } from "react";
 import { useAtomValue } from "jotai";
-import { enableSourcemapAtom, sourcemapDataAtom } from "@/store/sourcemap";
-import { SourceMapConsumer } from "source-map-js";
 import type * as Monaco from "monaco-editor";
+import { useEffect, useRef } from "react";
+import { SourceMapConsumer } from "source-map-js";
+import { enableSourcemapAtom, sourcemapDataAtom } from "@/store/sourcemap";
 
 interface UseSegmentDecorationsOptions {
   inputEditorRef: React.RefObject<Monaco.editor.IStandaloneCodeEditor | null>;
@@ -68,6 +68,17 @@ export function useSegmentDecorations({
       const parsed = JSON.parse(rawSourcemap);
       const consumer = new SourceMapConsumer(parsed);
 
+      interface Mapping {
+        genCol: number;
+        genColEnd?: number;
+        genLine: number;
+        source: string | null;
+        origLine: number | null;
+        origCol: number | null;
+        origColEnd?: number;
+        name?: string | null;
+      }
+
       const inputDecorations: Monaco.editor.IModelDeltaDecoration[] = [];
       const outputDecorations: Monaco.editor.IModelDeltaDecoration[] = [];
 
@@ -76,15 +87,15 @@ export function useSegmentDecorations({
       segmentColorMap.clear();
 
       // Collect all mappings
-      const mappingsByGenLine = new Map<number, any[]>();
-      const mappingsByOriginal = new Map<string, Map<number, any[]>>();
+      const mappingsByGenLine = new Map<number, Mapping[]>();
+      const mappingsByOriginal = new Map<string, Map<number, Mapping[]>>();
 
       consumer.eachMapping((m) => {
         if (m.generatedLine !== null && m.generatedColumn !== null) {
           if (!mappingsByGenLine.has(m.generatedLine)) {
             mappingsByGenLine.set(m.generatedLine, []);
           }
-          mappingsByGenLine.get(m.generatedLine)!.push({
+          mappingsByGenLine.get(m.generatedLine)?.push({
             genCol: m.generatedColumn,
             genLine: m.generatedLine,
             source: m.source,
@@ -94,21 +105,24 @@ export function useSegmentDecorations({
           });
         }
 
-        if (m.source && m.originalLine !== null) {
+        if (m.source && m.originalLine !== null && m.originalColumn !== null) {
           if (!mappingsByOriginal.has(m.source)) {
             mappingsByOriginal.set(m.source, new Map());
           }
-          const sourceMap = mappingsByOriginal.get(m.source)!;
-          if (!sourceMap.has(m.originalLine)) {
-            sourceMap.set(m.originalLine, []);
+          const sourceMap = mappingsByOriginal.get(m.source);
+          if (sourceMap) {
+            if (!sourceMap.has(m.originalLine)) {
+              sourceMap.set(m.originalLine, []);
+            }
+            sourceMap.get(m.originalLine)?.push({
+              origCol: m.originalColumn,
+              origLine: m.originalLine,
+              genCol: m.generatedColumn,
+              genLine: m.generatedLine,
+              name: m.name,
+              source: m.source,
+            });
           }
-          sourceMap.get(m.originalLine)!.push({
-            origCol: m.originalColumn,
-            origLine: m.originalLine,
-            genCol: m.generatedColumn,
-            genLine: m.generatedLine,
-            name: m.name,
-          });
         }
       });
 
@@ -123,15 +137,15 @@ export function useSegmentDecorations({
       }
 
       // Compute ends for original mappings
-      for (const [, lines] of mappingsByOriginal.entries()) {
-        for (const [, mappings] of lines.entries()) {
-          mappings.sort((a, b) => a.origCol - b.origCol);
+      for (const lines of mappingsByOriginal.values()) {
+        for (const mappings of lines.values()) {
+          mappings.sort((a, b) => (a.origCol ?? 0) - (b.origCol ?? 0));
           for (let i = 0; i < mappings.length; i++) {
             const m = mappings[i];
             const next = mappings[i + 1];
             m.origColEnd = next
-              ? next.origCol
-              : m.origCol + (m.name?.length || 5);
+              ? (next.origCol ?? undefined)
+              : (m.origCol ?? 0) + (m.name?.length || 5);
           }
         }
       }
@@ -142,7 +156,7 @@ export function useSegmentDecorations({
           const colorIndex = colorIndexCounter.current++;
 
           // Store color mapping for hover lookup
-          if (m.source && m.origLine) {
+          if (m.source && m.origLine !== null && m.origCol !== null) {
             const key = getSegmentKey(m.source, m.origLine, m.origCol);
             segmentColorMap.set(key, colorIndex);
           }
@@ -152,7 +166,7 @@ export function useSegmentDecorations({
               startLineNumber: line,
               startColumn: m.genCol + 1, // Monaco is 1-based
               endLineNumber: line,
-              endColumn: m.genColEnd + 1,
+              endColumn: (m.genColEnd ?? m.genCol + 1) + 1,
             },
             options: {
               inlineClassName: `segment-bg-${colorIndex % 16}`,
@@ -176,26 +190,30 @@ export function useSegmentDecorations({
       }
 
       if (sourceKey) {
-        const sourceLines = mappingsByOriginal.get(sourceKey)!;
-        for (const [line, mappings] of sourceLines.entries()) {
-          for (const m of mappings) {
-            // Look up color from the output mapping
-            const key = getSegmentKey(sourceKey, m.origLine, m.origCol);
-            const colorIndex =
-              segmentColorMap.get(key) ?? colorIndexCounter.current++;
-            segmentColorMap.set(key, colorIndex);
+        const sourceLines = mappingsByOriginal.get(sourceKey);
+        if (sourceLines) {
+          for (const [line, mappings] of sourceLines.entries()) {
+            for (const m of mappings) {
+              // Look up color from the output mapping
+              if (m.origLine !== null && m.origCol !== null) {
+                const key = getSegmentKey(sourceKey, m.origLine, m.origCol);
+                const colorIndex =
+                  segmentColorMap.get(key) ?? colorIndexCounter.current++;
+                segmentColorMap.set(key, colorIndex);
 
-            inputDecorations.push({
-              range: {
-                startLineNumber: line,
-                startColumn: m.origCol + 1,
-                endLineNumber: line,
-                endColumn: m.origColEnd + 1,
-              },
-              options: {
-                inlineClassName: `segment-bg-${colorIndex % 16}`,
-              },
-            });
+                inputDecorations.push({
+                  range: {
+                    startLineNumber: line,
+                    startColumn: (m.origCol ?? 0) + 1,
+                    endLineNumber: line,
+                    endColumn: (m.origColEnd ?? 0) + 1,
+                  },
+                  options: {
+                    inlineClassName: `segment-bg-${colorIndex % 16}`,
+                  },
+                });
+              }
+            }
           }
         }
       }

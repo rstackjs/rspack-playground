@@ -36,8 +36,8 @@ importers:
         specifier: ^1.2.8
         version: 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@rspack/browser':
-        specifier: 2.0.0-beta.2
-        version: 2.0.0-beta.2(@swc/helpers@0.5.19)
+        specifier: 2.0.0-beta.6
+        version: 2.0.0-beta.6(@swc/helpers@0.5.19)
       ansis:
         specifier: ^4.2.0
         version: 4.2.0
@@ -114,6 +114,9 @@ importers:
       mime:
         specifier: ^4.1.0
         version: 4.1.0
+      monaco-editor:
+        specifier: ^0.55.1
+        version: 0.55.1
       tailwindcss:
         specifier: ^4.2.1
         version: 4.2.1
@@ -893,8 +896,8 @@ packages:
   '@rspack/binding@1.7.8':
     resolution: {integrity: sha512-P4fbrQx5hRhAiC8TBTEMCTnNawrIzJLjWwAgrTwRxjgenpjNvimEkQBtSGrXOY+c+MV5Q74P+9wPvVWLKzRkQQ==}
 
-  '@rspack/browser@2.0.0-beta.2':
-    resolution: {integrity: sha512-/nbgP+ArzBftjl3whNEqkERSNuvbGtagxL4cY+lys7Z66wooGVQErd1Fh8EOAzOuvjfL/pJjcraMWqu2GvWNnQ==}
+  '@rspack/browser@2.0.0-beta.6':
+    resolution: {integrity: sha512-0wncbHE5NvVi92BoszO5ErQFuLAT/Ja6AK5jG9j9Uco6AbfSanaLfAJOv1c55KXRd4xAHAiXomQwK52FD9d01Q==}
     peerDependencies:
       '@swc/helpers': '>=0.5.1'
     peerDependenciesMeta:
@@ -1704,10 +1707,6 @@ packages:
     resolution: {integrity: sha512-Zn5uXdcFNIA1+1Ei5McRd+iRzfhENPCe7LeABkJtNulSxjma+l7ltNx55BWZkRlwRnpOgHqxnjyaDgJnNXnqzg==}
     engines: {node: '>=10.13.0'}
 
-  webpack-sources@3.3.3:
-    resolution: {integrity: sha512-yd1RBzSGanHkitROoPFd6qsrxt+oFhg/129YzheDGqeustzX0vTZJZsSsQjVQC4yzBQ56K55XU8gaNCtIzOnTg==}
-    engines: {node: '>=10.13.0'}
-
   webpack-sources@3.3.4:
     resolution: {integrity: sha512-7tP1PdV4vF+lYPnkMR0jMY5/la2ub5Fc/8VQrrU+lXkiM6C4TjVfGw7iKfyhnTQOsD+6Q/iKw0eFciziRgD58Q==}
     engines: {node: '>=10.13.0'}
@@ -2469,14 +2468,14 @@ snapshots:
       '@rspack/binding-win32-ia32-msvc': 1.7.8
       '@rspack/binding-win32-x64-msvc': 1.7.8
 
-  '@rspack/browser@2.0.0-beta.2(@swc/helpers@0.5.19)':
+  '@rspack/browser@2.0.0-beta.6(@swc/helpers@0.5.19)':
     dependencies:
       '@napi-rs/wasm-runtime': 1.0.7
       '@rspack/lite-tapable': 1.1.0
       '@swc/types': 0.1.25
       '@types/watchpack': 2.4.5
       memfs: 4.53.0
-      webpack-sources: 3.3.3
+      webpack-sources: 3.3.4
     optionalDependencies:
       '@swc/helpers': 0.5.19
 
@@ -3162,8 +3161,6 @@ snapshots:
     dependencies:
       glob-to-regexp: 0.4.1
       graceful-fs: 4.2.11
-
-  webpack-sources@3.3.3: {}
 
   webpack-sources@3.3.4: {}
 

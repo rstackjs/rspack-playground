@@ -19,7 +19,7 @@ mode: "development",
   module: {
     rules: [
       {
-        test: /\.js$/,
+        test: /.js$/,
         use: {
           loader: "builtin:swc-loader",
           options: {

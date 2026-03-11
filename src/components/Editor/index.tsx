@@ -1,16 +1,17 @@
 import ansis from "ansis";
 import { useAtom, useAtomValue } from "jotai";
-import type * as Monaco from "monaco-editor";
 import { debounce } from "lodash-es";
+import type * as Monaco from "monaco-editor";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import DependencyPanel from "@/components/Dependencies";
 import CodeEditor from "@/components/Editor/CodeEditor";
 import SourcemapOverlay from "@/components/Editor/SourcemapOverlay";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import useBundle from "@/hooks/use-bundle";
-import { useSourcemapHover } from "@/hooks/useSourcemapHover";
 import { useSegmentDecorations } from "@/hooks/useSegmentDecorations";
+import { useSourcemapHover } from "@/hooks/useSourcemapHover";
 import type { BundleResult, SourceFile } from "@/store/bundler";
 import {
   bindingLoadingAtom,
@@ -18,7 +19,11 @@ import {
   enableFormatCode,
   inputFilesAtom,
 } from "@/store/bundler";
-import { activeInputFileAtom, activeOutputFileAtom } from "@/store/editor";
+import {
+  activeInputFileAtom,
+  activeOutputFileAtom,
+  enableDependenciesAtom,
+} from "@/store/editor";
 
 interface InputPanelProps {
   inputFiles: SourceFile[];
@@ -73,6 +78,8 @@ interface OutputPanelProps {
   setActiveOutputFile: (index: number) => void;
   enableSourcemap: boolean;
   setEnableSourcemap: (enabled: boolean) => void;
+  enableDependencies: boolean;
+  setEnableDependencies: (enabled: boolean) => void;
   onEditorMount?: (editor: Monaco.editor.IStandaloneCodeEditor) => void;
   panelRef?: React.RefObject<HTMLDivElement | null>;
 }
@@ -84,6 +91,8 @@ function OutputPanel({
   setActiveOutputFile,
   enableSourcemap,
   setEnableSourcemap,
+  enableDependencies,
+  setEnableDependencies,
   onEditorMount,
   panelRef,
 }: OutputPanelProps) {
@@ -107,6 +116,16 @@ function OutputPanel({
         <div className="flex items-center justify-between p-2 border-b bg-muted/30">
           <span className="text-sm font-medium">Output Files</span>
           <span className="flex gap-4 text-xs text-accent-foreground">
+            <span className="flex gap-2 items-center">
+              <Checkbox
+                id="enable-deps"
+                checked={enableDependencies}
+                onCheckedChange={(state) =>
+                  setEnableDependencies(Boolean(state))
+                }
+              />
+              <Label htmlFor="enable-deps">Dependencies</Label>
+            </span>
             <span className="flex gap-2 items-center">
               <Checkbox
                 id="enable-sourcemap"
@@ -207,9 +226,11 @@ function Editor() {
   const [inputFiles, _setInputFiles] = useAtom(inputFilesAtom);
   const [activeInputFile, setActiveInputFile] = useAtom(activeInputFileAtom);
   const [activeOutputFile, setActiveOutputFile] = useAtom(activeOutputFileAtom);
+  const [enableDeps, setEnableDeps] = useAtom(enableDependenciesAtom);
   const isLoadingBinding = useAtomValue(bindingLoadingAtom);
   const bundleResult = useAtomValue(bundleResultAtom);
   const handleBundle = useBundle();
+  const editorContainerRef = useRef<HTMLDivElement | null>(null);
 
   // Refs for sourcemap overlay
   const inputEditorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(
@@ -328,7 +349,7 @@ function Editor() {
   );
 
   return (
-    <div className="flex h-full relative">
+    <div ref={editorContainerRef} className="flex h-full relative">
       {/* Mobile layout (vertical) */}
       <div className="flex flex-col h-full w-full md:hidden">
         <PanelGroup id="editors-mobile" direction="vertical" className="h-full">
@@ -351,6 +372,8 @@ function Editor() {
             isLoadingBinding={isLoadingBinding}
             enableSourcemap={enableSourcemap}
             setEnableSourcemap={setEnableSourcemap}
+            enableDependencies={enableDeps}
+            setEnableDependencies={setEnableDeps}
             onEditorMount={handleOutputEditorMount}
             panelRef={outputPanelRef}
           />
@@ -383,9 +406,29 @@ function Editor() {
             isLoadingBinding={isLoadingBinding}
             enableSourcemap={enableSourcemap}
             setEnableSourcemap={setEnableSourcemap}
+            enableDependencies={enableDeps}
+            setEnableDependencies={setEnableDeps}
             onEditorMount={handleOutputEditorMount}
             panelRef={outputPanelRef}
           />
+          {enableDeps && bundleResult && (
+            <>
+              <ResizeHandle isVertical={false} />
+              <Panel
+                id="dependencies"
+                defaultSize={25}
+                minSize={15}
+                className="min-h-0"
+              >
+                <DependencyPanel
+                  modules={bundleResult.modules}
+                  inputFiles={inputFiles}
+                  activeInputFile={activeInputFile}
+                  inputEditorRef={inputEditorRef}
+                />
+              </Panel>
+            </>
+          )}
         </PanelGroup>
       </div>
 

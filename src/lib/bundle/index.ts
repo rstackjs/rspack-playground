@@ -5,9 +5,10 @@ import {
   type RspackOptions,
   rspack,
 } from "@rspack/browser";
+import { format } from "@/lib/format";
 import type { BundleResult, SourceFile } from "@/store/bundler";
 import { RSPACK_CONFIG } from "@/store/common";
-import { format } from "./format";
+import { DependenciesPlugin } from "./dependency";
 
 async function loadConfig(content: string): Promise<RspackOptions> {
   function requireRspack(name: string) {
@@ -54,8 +55,12 @@ export async function bundle(files: SourceFile[]): Promise<BundleResult> {
       errors: [(e as Error).message],
       warnings: [],
       sourcemaps: new Map(),
+      modules: [],
     };
   }
+
+  const depsPlugin = new DependenciesPlugin();
+  options.plugins = [...(options.plugins || []), depsPlugin];
 
   const startTime = performance.now();
   return new Promise((resolve) => {
@@ -70,6 +75,7 @@ export async function bundle(files: SourceFile[]): Promise<BundleResult> {
           errors: [err.message],
           warnings: [],
           sourcemaps: new Map(),
+          modules: [],
         });
         return;
       }
@@ -136,6 +142,7 @@ export async function bundle(files: SourceFile[]): Promise<BundleResult> {
         errors: statsJson?.errors?.map((err) => err.message) || [],
         warnings: statsJson?.warnings?.map((warning) => warning.message) || [],
         sourcemaps,
+        modules: depsPlugin.extractedModules,
       });
     });
   });

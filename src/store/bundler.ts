@@ -1,4 +1,5 @@
 import { atom } from "jotai";
+import type { RspackModuleDeps } from "@/lib/bundle/dependency";
 import { deserializeShareData } from "@/lib/share";
 import { PresetBasicLibrary } from "./presets";
 
@@ -15,6 +16,7 @@ export interface BundleResult {
   errors: string[];
   warnings: string[];
   sourcemaps: Map<string, string>; // output filename -> sourcemap JSON
+  modules: RspackModuleDeps[]; // dependency data
 }
 
 function getInitFiles() {

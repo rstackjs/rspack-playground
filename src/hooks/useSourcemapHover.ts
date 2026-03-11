@@ -1,16 +1,16 @@
-import { SourceMapConsumer } from "source-map-js";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import type * as Monaco from "monaco-editor";
 import { useCallback, useEffect, useRef } from "react";
+import { SourceMapConsumer } from "source-map-js";
+import { getColorIndexForSegment } from "@/hooks/useSegmentDecorations";
 import { bundleResultAtom, enableFormatCode } from "@/store/bundler";
 import {
-  type MappedPosition,
   enableSourcemapAtom,
   hoverPositionAtom,
+  type MappedPosition,
   mappedPositionAtom,
   sourcemapDataAtom,
 } from "@/store/sourcemap";
-import { getColorIndexForSegment } from "@/hooks/useSegmentDecorations";
-import type * as Monaco from "monaco-editor";
 
 interface UseSourcemapHoverOptions {
   inputEditorRef: React.RefObject<Monaco.editor.IStandaloneCodeEditor | null>;
@@ -36,25 +36,22 @@ export function useSourcemapHover({
   const setMappedPosition = useSetAtom(mappedPositionAtom);
   const setSourcemapData = useSetAtom(sourcemapDataAtom);
 
-  // Cache for parsed consumers and pre-computed mappings by line
+  interface Mapping {
+    genCol: number;
+    genColEnd?: number;
+    genLine: number;
+    source: string | null;
+    origLine: number | null;
+    origCol: number | null;
+    origColEnd?: number;
+    name?: string | null;
+  }
+
   interface CachedConsumer {
     consumer: SourceMapConsumer;
-    // Map<generatedLine, Mapping[]> - sorted by generatedColumn
-    mappingsByLine: Map<
-      number,
-      {
-        genCol: number;
-        genColEnd?: number;
-        genLine: number;
-        source: string;
-        origLine: number;
-        origCol: number;
-        origColEnd?: number;
-        name?: string;
-      }[]
-    >;
+    mappingsByLine: Map<number, Mapping[]>;
     // Map<source, Map<line, Mapping[]>>
-    mappingsByOriginal: Map<string, Map<number, any[]>>;
+    mappingsByOriginal: Map<string, Map<number, Mapping[]>>;
   }
 
   const consumerCache = useRef<Map<string, CachedConsumer>>(new Map());
@@ -93,12 +90,15 @@ export function useSourcemapHover({
       try {
         const parsed = JSON.parse(sourcemapJson);
         const consumer = new SourceMapConsumer(parsed);
-        const mappingsByLine = new Map<number, any[]>();
-        const mappingsByOriginal = new Map<string, Map<number, any[]>>();
+        const mappingsByLine = new Map<number, Mapping[]>();
+        const mappingsByOriginal = new Map<string, Map<number, Mapping[]>>();
 
         // Pre-compute mappings organized by line and original source
         consumer.eachMapping((m) => {
-          const mapping = {
+          // generatedLine/Column are mandatory for a valid mapping in our use case
+          if (m.generatedLine === null || m.generatedColumn === null) return;
+
+          const mapping: Mapping = {
             genCol: m.generatedColumn,
             genLine: m.generatedLine,
             source: m.source,
@@ -112,22 +112,28 @@ export function useSourcemapHover({
           if (!mappingsByLine.has(m.generatedLine)) {
             mappingsByLine.set(m.generatedLine, []);
           }
-          mappingsByLine.get(m.generatedLine)!.push(mapping);
+          mappingsByLine.get(m.generatedLine)?.push(mapping);
 
-          if (m.source && m.originalLine !== null) {
+          if (
+            m.source &&
+            m.originalLine !== null &&
+            m.originalColumn !== null
+          ) {
             if (!mappingsByOriginal.has(m.source)) {
               mappingsByOriginal.set(m.source, new Map());
             }
-            const sourceMap = mappingsByOriginal.get(m.source)!;
-            if (!sourceMap.has(m.originalLine)) {
-              sourceMap.set(m.originalLine, []);
+            const sourceMap = mappingsByOriginal.get(m.source);
+            if (sourceMap) {
+              if (!sourceMap.has(m.originalLine)) {
+                sourceMap.set(m.originalLine, []);
+              }
+              sourceMap.get(m.originalLine)?.push(mapping);
             }
-            sourceMap.get(m.originalLine)!.push(mapping);
           }
         });
 
         // Sort and compute ends for GENERATED
-        for (const [, mappings] of mappingsByLine.entries()) {
+        for (const mappings of mappingsByLine.values()) {
           mappings.sort((a, b) => a.genCol - b.genCol);
           for (let i = 0; i < mappings.length; i++) {
             const m = mappings[i];
@@ -137,13 +143,13 @@ export function useSourcemapHover({
         }
 
         // Sort and compute ends for ORIGINAL
-        for (const [, lines] of mappingsByOriginal.entries()) {
-          for (const [, mappings] of lines.entries()) {
-            mappings.sort((a, b) => a.origCol - b.origCol);
+        for (const lines of mappingsByOriginal.values()) {
+          for (const mappings of lines.values()) {
+            mappings.sort((a, b) => (a.origCol ?? 0) - (b.origCol ?? 0));
             for (let i = 0; i < mappings.length; i++) {
               const m = mappings[i];
               const next = mappings[i + 1];
-              if (next) m.origColEnd = next.origCol;
+              if (next) m.origColEnd = next.origCol ?? undefined;
             }
           }
         }
@@ -182,7 +188,7 @@ export function useSourcemapHover({
       // Find the segment containing the mouse column
       // We want the last mapping where genCol <= hoverColumn
       let match = null;
-      let checkCol = position.column - 1; // Monaco 1-based -> SourceMap 0-based
+      const checkCol = position.column - 1; // Monaco 1-based -> SourceMap 0-based
 
       // Linear search is fine for typical line length, but could binary search if needed
       for (const m of lineMappings) {
@@ -196,7 +202,7 @@ export function useSourcemapHover({
       // If we found a match, ensure we haven't gone past its end (if it has a defined end)
       // Though technically sourcemaps extend to next mapping
 
-      if (match && match.source && match.origLine !== null) {
+      if (match?.source && match.origLine !== null) {
         let targetFile: { filename: string } | undefined;
 
         // Try to find the matching input file using various path formats
@@ -218,19 +224,22 @@ export function useSourcemapHover({
 
           // Determine Generated Range
           const genColStart = match.genCol;
-          let genColEnd = match.genColEnd || match.genCol + 10;
+          const genColEnd = match.genColEnd || match.genCol + 10;
 
           // Look up color index for this segment
-          const colorIndex = getColorIndexForSegment(
-            match.source,
-            match.origLine,
-            match.origCol,
-          );
+          const colorIndex =
+            match.origLine !== null && match.origCol !== null
+              ? getColorIndexForSegment(
+                  match.source,
+                  match.origLine,
+                  match.origCol,
+                )
+              : undefined;
 
           const mappedPos: MappedPosition = {
             originalFilename: targetFile.filename,
-            originalLine: match.origLine,
-            originalColumn: match.origCol, // Full segment start
+            originalLine: match.origLine ?? 0,
+            originalColumn: match.origCol ?? 0, // Full segment start
             originalColumnEnd: match.origColEnd, // Full segment end
             generatedLine: position.lineNumber,
             generatedColumn: genColStart,
@@ -260,6 +269,8 @@ export function useSourcemapHover({
       getConsumer,
       inputFiles,
       activeInputIndex,
+      setHoverPosition,
+      setMappedPosition,
     ],
   );
 
@@ -295,7 +306,8 @@ export function useSourcemapHover({
 
         if (!sourceKey) continue;
 
-        const sourceMappings = mappingsByOriginal.get(sourceKey)!;
+        const sourceMappings = mappingsByOriginal.get(sourceKey);
+        if (!sourceMappings) continue;
         const lineMappings = sourceMappings.get(position.lineNumber);
 
         if (!lineMappings) continue;
@@ -305,7 +317,7 @@ export function useSourcemapHover({
         let match = null;
 
         for (const m of lineMappings) {
-          if (m.origCol <= checkCol) {
+          if (m.origCol !== null && m.origCol <= checkCol) {
             match = m;
           } else {
             break;
@@ -314,7 +326,7 @@ export function useSourcemapHover({
 
         // Check if we are past the segment
         // If origColEnd is undefined, assume segment is just the identifier (use name length or default)
-        if (match) {
+        if (match && match.origCol !== null) {
           let effectiveEnd: number;
           if (match.origColEnd !== undefined) {
             effectiveEnd = match.origColEnd;
@@ -330,7 +342,7 @@ export function useSourcemapHover({
           }
         }
 
-        if (match) {
+        if (match && match.origCol !== null && match.origLine !== null) {
           const genColStart = match.genCol;
           const genColEnd = match.genColEnd || match.genCol + 10;
 

@@ -1,8 +1,8 @@
 import { useAtomValue } from "jotai";
+import type * as Monaco from "monaco-editor";
 import { useEffect, useRef, useState } from "react";
 import { hoverPositionAtom, mappedPositionAtom } from "@/store/sourcemap";
 import { getColorForSegment } from "@/utils/segmentColors";
-import type * as Monaco from "monaco-editor";
 
 interface SourcemapOverlayProps {
   inputEditorRef: React.RefObject<Monaco.editor.IStandaloneCodeEditor | null>;
@@ -26,8 +26,8 @@ export default function SourcemapOverlay({
   outputEditorRef,
   inputPanelRef,
   outputPanelRef,
-  inputFiles,
-  activeInputIndex,
+  inputFiles: _inputFiles,
+  activeInputIndex: _activeInputIndex,
   enabled,
 }: SourcemapOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -63,16 +63,18 @@ export default function SourcemapOverlay({
       window.removeEventListener("resize", updateDimensions);
       resizeObserver?.disconnect();
     };
-  }, [enabled]); // Re-run when enabled changes
+  }, []); // Re-run when component mounts
 
   // Draw highlighting boxes and connecting line
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx || !enabled) return;
+    if (!canvas || !ctx) return;
 
-    // Clear canvas
+    // Always clear canvas first
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (!enabled || dimensions.width === 0 || dimensions.height === 0) return;
 
     if (!hoverPosition || !mappedPosition) return;
 
@@ -105,7 +107,7 @@ export default function SourcemapOverlay({
         // Fallback: calculate from font size
         const fontSize = outputEditor.getOption(
           52 /* EditorOption.fontSize */,
-        ) as number;
+        ) as unknown as number;
         if (typeof fontSize === "number" && fontSize > 0) {
           lineHeight = Math.round(fontSize * 1.5);
         }
@@ -120,7 +122,7 @@ export default function SourcemapOverlay({
       line: number,
       column: number, // 0-based
       editorDom: HTMLElement,
-      panelRect: DOMRect,
+      _panelRect: DOMRect,
       columnEnd?: number, // 0-based
     ): BoxPosition | null => {
       const model = editor.getModel();
@@ -343,26 +345,22 @@ export default function SourcemapOverlay({
     ctx.setLineDash([]);
     ctx.stroke();
   }, [
-    enabled,
     hoverPosition,
     mappedPosition,
     inputEditorRef,
     outputEditorRef,
     inputPanelRef,
     outputPanelRef,
-    inputFiles,
-    activeInputIndex,
+    enabled,
     dimensions,
   ]);
-
-  if (!enabled) return null;
 
   return (
     <canvas
       ref={canvasRef}
       width={dimensions.width}
       height={dimensions.height}
-      className="absolute inset-0 pointer-events-none z-50"
+      className={`absolute inset-0 pointer-events-none z-50 ${enabled ? "opacity-100" : "opacity-0"}`}
       style={{ width: "100%", height: "100%" }}
     />
   );
