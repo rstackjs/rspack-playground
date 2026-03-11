@@ -10,6 +10,7 @@ import SourcemapOverlay from "@/components/Editor/SourcemapOverlay";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import useBundle from "@/hooks/use-bundle";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useSegmentDecorations } from "@/hooks/useSegmentDecorations";
 import { useSourcemapHover } from "@/hooks/useSourcemapHover";
 import type { BundleResult, SourceFile } from "@/store/bundler";
@@ -231,6 +232,7 @@ function Editor() {
   const bundleResult = useAtomValue(bundleResultAtom);
   const handleBundle = useBundle();
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
+  const isMobile = useIsMobile();
 
   // Refs for sourcemap overlay
   const inputEditorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(
@@ -350,87 +352,93 @@ function Editor() {
 
   return (
     <div ref={editorContainerRef} className="flex h-full relative">
-      {/* Mobile layout (vertical) */}
-      <div className="flex flex-col h-full w-full md:hidden">
-        <PanelGroup id="editors-mobile" direction="vertical" className="h-full">
-          <InputPanel
-            inputFiles={inputFiles}
-            activeInputFile={activeInputFile}
-            setActiveInputFile={setActiveInputFile}
-            handleInputFileCreate={handleInputFileCreate}
-            handleInputFileDelete={handleInputFileDelete}
-            handleInputFileRename={handleInputFileRename}
-            handleInputContentChange={handleInputContentChange}
-            onEditorMount={handleInputEditorMount}
-            panelRef={inputPanelRef}
-          />
-          <ResizeHandle isVertical={true} />
-          <OutputPanel
-            bundleResult={bundleResult}
-            activeOutputFile={activeOutputFile}
-            setActiveOutputFile={setActiveOutputFile}
-            isLoadingBinding={isLoadingBinding}
-            enableSourcemap={enableSourcemap}
-            setEnableSourcemap={setEnableSourcemap}
-            enableDependencies={enableDeps}
-            setEnableDependencies={setEnableDeps}
-            onEditorMount={handleOutputEditorMount}
-            panelRef={outputPanelRef}
-          />
-        </PanelGroup>
-      </div>
-
-      {/* Desktop layout (horizontal) */}
-      <div className="hidden md:flex h-full w-full">
-        <PanelGroup
-          id="editors-desktop"
-          direction="horizontal"
-          className="h-full"
-        >
-          <InputPanel
-            inputFiles={inputFiles}
-            activeInputFile={activeInputFile}
-            setActiveInputFile={setActiveInputFile}
-            handleInputFileCreate={handleInputFileCreate}
-            handleInputFileDelete={handleInputFileDelete}
-            handleInputFileRename={handleInputFileRename}
-            handleInputContentChange={handleInputContentChange}
-            onEditorMount={handleInputEditorMount}
-            panelRef={inputPanelRef}
-          />
-          <ResizeHandle isVertical={false} />
-          <OutputPanel
-            bundleResult={bundleResult}
-            activeOutputFile={activeOutputFile}
-            setActiveOutputFile={setActiveOutputFile}
-            isLoadingBinding={isLoadingBinding}
-            enableSourcemap={enableSourcemap}
-            setEnableSourcemap={setEnableSourcemap}
-            enableDependencies={enableDeps}
-            setEnableDependencies={setEnableDeps}
-            onEditorMount={handleOutputEditorMount}
-            panelRef={outputPanelRef}
-          />
-          {enableDeps && bundleResult && (
-            <>
-              <ResizeHandle isVertical={false} />
-              <Panel
-                id="dependencies"
-                defaultSize={25}
-                minSize={15}
-                className="min-h-0"
-              >
-                <DependencyPanel
-                  modules={bundleResult.modules}
-                  inputFiles={inputFiles}
-                  activeInputFile={activeInputFile}
-                  inputEditorRef={inputEditorRef}
-                />
-              </Panel>
-            </>
-          )}
-        </PanelGroup>
-      </div>
+      {isMobile === undefined ? null : isMobile ? (
+        /* Mobile layout (vertical) */
+        <div className="flex flex-col h-full w-full">
+          <PanelGroup
+            id="editors-mobile"
+            direction="vertical"
+            className="h-full"
+          >
+            <InputPanel
+              inputFiles={inputFiles}
+              activeInputFile={activeInputFile}
+              setActiveInputFile={setActiveInputFile}
+              handleInputFileCreate={handleInputFileCreate}
+              handleInputFileDelete={handleInputFileDelete}
+              handleInputFileRename={handleInputFileRename}
+              handleInputContentChange={handleInputContentChange}
+              onEditorMount={handleInputEditorMount}
+              panelRef={inputPanelRef}
+            />
+            <ResizeHandle isVertical={true} />
+            <OutputPanel
+              bundleResult={bundleResult}
+              activeOutputFile={activeOutputFile}
+              setActiveOutputFile={setActiveOutputFile}
+              isLoadingBinding={isLoadingBinding}
+              enableSourcemap={enableSourcemap}
+              setEnableSourcemap={setEnableSourcemap}
+              enableDependencies={enableDeps}
+              setEnableDependencies={setEnableDeps}
+              onEditorMount={handleOutputEditorMount}
+              panelRef={outputPanelRef}
+            />
+          </PanelGroup>
+        </div>
+      ) : (
+        /* Desktop layout (horizontal) */
+        <div className="flex h-full w-full">
+          <PanelGroup
+            id="editors-desktop"
+            direction="horizontal"
+            className="h-full"
+          >
+            <InputPanel
+              inputFiles={inputFiles}
+              activeInputFile={activeInputFile}
+              setActiveInputFile={setActiveInputFile}
+              handleInputFileCreate={handleInputFileCreate}
+              handleInputFileDelete={handleInputFileDelete}
+              handleInputFileRename={handleInputFileRename}
+              handleInputContentChange={handleInputContentChange}
+              onEditorMount={handleInputEditorMount}
+              panelRef={inputPanelRef}
+            />
+            <ResizeHandle isVertical={false} />
+            <OutputPanel
+              bundleResult={bundleResult}
+              activeOutputFile={activeOutputFile}
+              setActiveOutputFile={setActiveOutputFile}
+              isLoadingBinding={isLoadingBinding}
+              enableSourcemap={enableSourcemap}
+              setEnableSourcemap={setEnableSourcemap}
+              enableDependencies={enableDeps}
+              setEnableDependencies={setEnableDeps}
+              onEditorMount={handleOutputEditorMount}
+              panelRef={outputPanelRef}
+            />
+            {enableDeps && bundleResult && (
+              <>
+                <ResizeHandle isVertical={false} />
+                <Panel
+                  id="dependencies"
+                  defaultSize={25}
+                  minSize={15}
+                  className="min-h-0"
+                >
+                  <DependencyPanel
+                    modules={bundleResult.modules}
+                    inputFiles={inputFiles}
+                    activeInputFile={activeInputFile}
+                    inputEditorRef={inputEditorRef}
+                  />
+                </Panel>
+              </>
+            )}
+          </PanelGroup>
+        </div>
+      )}
 
       {/* Sourcemap overlay - renders on top of everything */}
       <SourcemapOverlay
