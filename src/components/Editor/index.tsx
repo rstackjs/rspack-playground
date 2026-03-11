@@ -425,7 +425,6 @@ function Editor() {
                   inputFiles={inputFiles}
                   activeInputFile={activeInputFile}
                   inputEditorRef={inputEditorRef}
-                  containerRef={editorContainerRef}
                 />
               </Panel>
             </>

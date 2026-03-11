@@ -9,7 +9,6 @@ interface DependencyPanelProps {
   inputFiles: SourceFile[];
   activeInputFile: number;
   inputEditorRef: React.RefObject<Monaco.editor.IStandaloneCodeEditor | null>;
-  containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 interface DepItem {
@@ -26,7 +25,6 @@ export default function DependencyPanel({
   inputFiles,
   activeInputFile,
   inputEditorRef,
-  containerRef,
 }: DependencyPanelProps) {
   const [lines, setLines] = useState<
     Array<{
@@ -41,6 +39,7 @@ export default function DependencyPanel({
   const [showAll, setShowAll] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const decorationsRef = useRef<Monaco.editor.IEditorDecorationsCollection | null>(null);
+  const styleIdsRef = useRef<Set<string>>(new Set());
 
   const activeFile = inputFiles[activeInputFile];
 
@@ -89,6 +88,17 @@ export default function DependencyPanel({
     decorationsRef.current?.clear();
   }, [activeInputFile]);
 
+  // Clean up dynamically created style elements on unmount
+  useEffect(() => {
+    const ids = styleIdsRef.current;
+    return () => {
+      for (const id of ids) {
+        document.getElementById(id)?.remove();
+      }
+      ids.clear();
+    };
+  }, []);
+
   const monacoInstance = useMonaco();
 
   const highlightRange = useCallback(
@@ -112,6 +122,7 @@ export default function DependencyPanel({
         style.id = styleId;
         style.textContent = `.${cssClass} { border: 1px solid ${color} !important; background-color: ${color}22 !important; border-radius: 2px; }`;
         document.head.appendChild(style);
+        styleIdsRef.current.add(styleId);
       }
 
       return { range, options: { className: cssClass } };
@@ -151,9 +162,8 @@ export default function DependencyPanel({
 
       const targetName = dep.targetModuleName;
       const inputPanel = editorDom.closest("[id='input']")?.parentElement;
-      const allTabs = inputPanel
-        ? inputPanel.querySelectorAll("[data-filename]")
-        : document.querySelectorAll("#input [data-filename], [data-filename]");
+      if (!inputPanel) return null;
+      const allTabs = inputPanel.querySelectorAll("[data-filename]");
       let tabEl: HTMLElement | null = null;
       for (const tab of allTabs) {
         const fn = tab.getAttribute("data-filename") || "";
@@ -179,6 +189,48 @@ export default function DependencyPanel({
     [inputEditorRef, totalDeps],
   );
 
+  // Recalculate all visible lines (used by showAll and scroll/resize)
+  const recalcAllLines = useCallback(() => {
+    const newLines: typeof lines = [];
+    for (const item of allDepItems) {
+      const line = drawLineToModule(item.dep, item.colorIdx);
+      if (line) {
+        newLines.push(line);
+      }
+    }
+    setLines(newLines);
+  }, [allDepItems, drawLineToModule]);
+
+  // Recalculate single hovered line
+  const recalcHoveredLine = useCallback(
+    (key: string) => {
+      const item = allDepItems.find((d) => d.key === key);
+      if (!item) return;
+      const line = drawLineToModule(item.dep, item.colorIdx);
+      setLines(line ? [line] : []);
+    },
+    [allDepItems, drawLineToModule],
+  );
+
+  // Recalculate line positions on scroll/resize
+  useEffect(() => {
+    const update = () => {
+      if (showAll) {
+        recalcAllLines();
+      } else if (hoveredKey) {
+        recalcHoveredLine(hoveredKey);
+      }
+    };
+
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+
+    return () => {
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+    };
+  }, [showAll, hoveredKey, recalcAllLines, recalcHoveredLine]);
+
   const handleDepHover = useCallback(
     (dep: RspackDependency, colorIndex: number, key: string) => {
       if (showAll) return;
@@ -193,7 +245,6 @@ export default function DependencyPanel({
         decorationsRef.current?.clear();
       }
 
-      // Draw line if dep has targetModuleName
       setLines([]);
       const line = drawLineToModule(dep, colorIndex);
       if (line) {
@@ -219,7 +270,6 @@ export default function DependencyPanel({
     }
 
     setShowAll(true);
-    const newLines: typeof lines = [];
     const decorations: Array<{ range: any; options: any }> = [];
 
     for (const item of allDepItems) {
@@ -228,15 +278,11 @@ export default function DependencyPanel({
       if (decoration) {
         decorations.push(decoration);
       }
-      const line = drawLineToModule(item.dep, item.colorIdx);
-      if (line) {
-        newLines.push(line);
-      }
     }
 
     decorationsRef.current?.set(decorations);
-    setLines(newLines);
-  }, [showAll, allDepItems, totalDeps, highlightRange, drawLineToModule]);
+    recalcAllLines();
+  }, [showAll, allDepItems, totalDeps, highlightRange, recalcAllLines]);
 
   // Editor mouse hover — highlight matching dep
   useEffect(() => {
@@ -350,7 +396,7 @@ export default function DependencyPanel({
 
   return (
     <>
-      <DependencyLines lines={lines} containerRef={containerRef} />
+      <DependencyLines lines={lines} />
       <div className="flex flex-col h-full">
         <div className="flex items-center justify-between p-2 border-b bg-muted/30">
           <span className="text-sm font-medium">

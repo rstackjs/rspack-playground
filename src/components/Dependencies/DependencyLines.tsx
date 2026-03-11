@@ -1,5 +1,3 @@
-import { useEffect, useState } from "react";
-
 interface LineInfo {
   startX: number;
   startY: number;
@@ -10,7 +8,6 @@ interface LineInfo {
 
 interface DependencyLinesProps {
   lines: LineInfo[];
-  containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 export const getDepColor = (index: number, total: number): string => {
@@ -18,30 +15,8 @@ export const getDepColor = (index: number, total: number): string => {
   return `hsl(${hue}, 70%, 55%)`;
 };
 
-export default function DependencyLines({
-  lines,
-  containerRef,
-}: DependencyLinesProps) {
-  const [containerBounds, setContainerBounds] = useState<DOMRect | null>(null);
-
-  useEffect(() => {
-    const updateBounds = () => {
-      if (containerRef.current) {
-        setContainerBounds(containerRef.current.getBoundingClientRect());
-      }
-    };
-
-    updateBounds();
-    window.addEventListener("resize", updateBounds);
-    window.addEventListener("scroll", updateBounds, true);
-
-    return () => {
-      window.removeEventListener("resize", updateBounds);
-      window.removeEventListener("scroll", updateBounds, true);
-    };
-  }, [containerRef]);
-
-  if (!containerBounds || lines.length === 0) return null;
+export default function DependencyLines({ lines }: DependencyLinesProps) {
+  if (lines.length === 0) return null;
 
   return (
     <svg
