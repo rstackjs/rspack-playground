@@ -69,10 +69,12 @@ export default function SourcemapOverlay({
   useEffect(() => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
-    if (!canvas || !ctx || !enabled) return;
+    if (!canvas || !ctx) return;
 
-    // Clear canvas
+    // Always clear canvas first
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (!enabled || dimensions.width === 0 || dimensions.height === 0) return;
 
     if (!hoverPosition || !mappedPosition) return;
 
@@ -350,16 +352,15 @@ export default function SourcemapOverlay({
     inputPanelRef,
     outputPanelRef,
     enabled,
+    dimensions,
   ]);
-
-  if (!enabled) return null;
 
   return (
     <canvas
       ref={canvasRef}
       width={dimensions.width}
       height={dimensions.height}
-      className="absolute inset-0 pointer-events-none z-50"
+      className={`absolute inset-0 pointer-events-none z-50 ${enabled ? "opacity-100" : "opacity-0"}`}
       style={{ width: "100%", height: "100%" }}
     />
   );
