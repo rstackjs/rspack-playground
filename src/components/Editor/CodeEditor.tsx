@@ -1,8 +1,8 @@
 import MonacoEditor from "@monaco-editor/react";
+import type * as Monaco from "monaco-editor";
 import FileTabs from "@/components/Editor/FileTabs";
 import { useTheme } from "@/components/ThemeProvider";
 import type { SourceFile } from "@/store/bundler";
-import type * as Monaco from "monaco-editor";
 
 interface CodeEditorProps {
   files: SourceFile[];

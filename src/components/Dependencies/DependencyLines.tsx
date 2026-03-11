@@ -31,26 +31,30 @@ export default function DependencyLines({ lines }: DependencyLinesProps) {
       }}
     >
       <defs>
-        {lines.map((line, idx) => (
-          <marker
-            key={`circle-${idx}`}
-            id={`dep-arrowhead-${idx}`}
-            markerWidth="8"
-            markerHeight="8"
-            refX="4"
-            refY="4"
-            orient="auto"
-          >
-            <circle cx="4" cy="4" r="3" fill={line.color} />
-          </marker>
-        ))}
+        {lines.map((line, idx) => {
+          const key = `marker-${line.startX}-${line.startY}-${line.endX}-${line.endY}-${idx}`;
+          return (
+            <marker
+              key={key}
+              id={`dep-arrowhead-${idx}`}
+              markerWidth="8"
+              markerHeight="8"
+              refX="4"
+              refY="4"
+              orient="auto"
+            >
+              <circle cx="4" cy="4" r="3" fill={line.color} />
+            </marker>
+          );
+        })}
       </defs>
       {lines.map((line, idx) => {
         const midX = (line.startX + line.endX) / 2;
         const pathD = `M ${line.startX} ${line.startY} C ${midX} ${line.startY}, ${midX} ${line.endY}, ${line.endX} ${line.endY}`;
+        const key = `line-${line.startX}-${line.startY}-${line.endX}-${line.endY}-${idx}`;
 
         return (
-          <g key={idx}>
+          <g key={key}>
             <path
               d={pathD}
               fill="none"

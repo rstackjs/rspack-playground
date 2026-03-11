@@ -1,8 +1,8 @@
 import { useAtomValue } from "jotai";
+import type * as Monaco from "monaco-editor";
 import { useEffect, useRef, useState } from "react";
 import { hoverPositionAtom, mappedPositionAtom } from "@/store/sourcemap";
 import { getColorForSegment } from "@/utils/segmentColors";
-import type * as Monaco from "monaco-editor";
 
 interface SourcemapOverlayProps {
   inputEditorRef: React.RefObject<Monaco.editor.IStandaloneCodeEditor | null>;
@@ -26,8 +26,8 @@ export default function SourcemapOverlay({
   outputEditorRef,
   inputPanelRef,
   outputPanelRef,
-  inputFiles,
-  activeInputIndex,
+  inputFiles: _inputFiles,
+  activeInputIndex: _activeInputIndex,
   enabled,
 }: SourcemapOverlayProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -63,7 +63,7 @@ export default function SourcemapOverlay({
       window.removeEventListener("resize", updateDimensions);
       resizeObserver?.disconnect();
     };
-  }, [enabled]); // Re-run when enabled changes
+  }, []); // Re-run when component mounts
 
   // Draw highlighting boxes and connecting line
   useEffect(() => {
@@ -105,7 +105,7 @@ export default function SourcemapOverlay({
         // Fallback: calculate from font size
         const fontSize = outputEditor.getOption(
           52 /* EditorOption.fontSize */,
-        ) as number;
+        ) as unknown as number;
         if (typeof fontSize === "number" && fontSize > 0) {
           lineHeight = Math.round(fontSize * 1.5);
         }
@@ -120,7 +120,7 @@ export default function SourcemapOverlay({
       line: number,
       column: number, // 0-based
       editorDom: HTMLElement,
-      panelRect: DOMRect,
+      _panelRect: DOMRect,
       columnEnd?: number, // 0-based
     ): BoxPosition | null => {
       const model = editor.getModel();
@@ -343,16 +343,13 @@ export default function SourcemapOverlay({
     ctx.setLineDash([]);
     ctx.stroke();
   }, [
-    enabled,
     hoverPosition,
     mappedPosition,
     inputEditorRef,
     outputEditorRef,
     inputPanelRef,
     outputPanelRef,
-    inputFiles,
-    activeInputIndex,
-    dimensions,
+    enabled,
   ]);
 
   if (!enabled) return null;

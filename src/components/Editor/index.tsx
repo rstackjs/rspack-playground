@@ -1,17 +1,17 @@
 import ansis from "ansis";
 import { useAtom, useAtomValue } from "jotai";
-import type * as Monaco from "monaco-editor";
 import { debounce } from "lodash-es";
+import type * as Monaco from "monaco-editor";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import DependencyPanel from "@/components/Dependencies";
 import CodeEditor from "@/components/Editor/CodeEditor";
 import SourcemapOverlay from "@/components/Editor/SourcemapOverlay";
-import DependencyPanel from "@/components/Dependencies";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import useBundle from "@/hooks/use-bundle";
-import { useSourcemapHover } from "@/hooks/useSourcemapHover";
 import { useSegmentDecorations } from "@/hooks/useSegmentDecorations";
+import { useSourcemapHover } from "@/hooks/useSourcemapHover";
 import type { BundleResult, SourceFile } from "@/store/bundler";
 import {
   bindingLoadingAtom,

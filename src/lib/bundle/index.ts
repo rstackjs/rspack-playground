@@ -5,14 +5,10 @@ import {
   type RspackOptions,
   rspack,
 } from "@rspack/browser";
-import type {
-  BundleResult,
-  SourceFile,
-} from "@/store/bundler";
-import { RSPACK_CONFIG } from "@/store/common";
 import { format } from "@/lib/format";
+import type { BundleResult, SourceFile } from "@/store/bundler";
+import { RSPACK_CONFIG } from "@/store/common";
 import { DependenciesPlugin } from "./dependency";
-
 
 async function loadConfig(content: string): Promise<RspackOptions> {
   function requireRspack(name: string) {

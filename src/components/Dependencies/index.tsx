@@ -1,7 +1,11 @@
-import type * as Monaco from "monaco-editor";
 import { useMonaco } from "@monaco-editor/react";
+import type * as Monaco from "monaco-editor";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { RspackDependency, RspackModuleDeps, SourceFile } from "@/store/bundler";
+import type {
+  RspackDependency,
+  RspackModuleDeps,
+} from "@/lib/bundle/dependency";
+import type { SourceFile } from "@/store/bundler";
 import DependencyLines, { getDepColor } from "./DependencyLines";
 
 interface DependencyPanelProps {
@@ -37,8 +41,11 @@ export default function DependencyPanel({
   >([]);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
-  const decorationsRef = useRef<Monaco.editor.IEditorDecorationsCollection | null>(null);
+  const [collapsedSections, setCollapsedSections] = useState<
+    Record<string, boolean>
+  >({});
+  const decorationsRef =
+    useRef<Monaco.editor.IEditorDecorationsCollection | null>(null);
   const styleIdsRef = useRef<Set<string>>(new Set());
 
   const activeFile = inputFiles[activeInputFile];
@@ -61,11 +68,22 @@ export default function DependencyPanel({
       items.push({ dep, section: "dep", key: `dep-${i}`, colorIdx: idx++ });
     });
     (currentModule.presentationalDeps ?? []).forEach((dep, i) => {
-      items.push({ dep, section: "presentational", key: `pdep-${i}`, colorIdx: idx++ });
+      items.push({
+        dep,
+        section: "presentational",
+        key: `pdep-${i}`,
+        colorIdx: idx++,
+      });
     });
     (currentModule.blocks ?? []).forEach((block, bi) => {
       (block.dependencies ?? []).forEach((dep, di) => {
-        items.push({ dep, section: "block", blockIndex: bi, key: `block-${bi}-${di}`, colorIdx: idx++ });
+        items.push({
+          dep,
+          section: "block",
+          blockIndex: bi,
+          key: `block-${bi}-${di}`,
+          colorIdx: idx++,
+        });
       });
     });
     return items;
@@ -81,6 +99,7 @@ export default function DependencyPanel({
   }, [inputEditorRef]);
 
   useEffect(() => {
+    void activeInputFile;
     setLines([]);
     setShowAll(false);
     setHoveredKey(null);
@@ -158,16 +177,22 @@ export default function DependencyPanel({
       if (endCoords) {
         startX = editorRect.left + (startCoords.left + endCoords.left) / 2;
       }
-      const startY = editorRect.top + startCoords.top + (startCoords.height / 2);
+      const startY = editorRect.top + startCoords.top + startCoords.height / 2;
 
       const targetName = dep.targetModuleName;
       const inputPanel = editorDom.closest("[id='input']")?.parentElement;
       if (!inputPanel) return null;
-      const allTabs = inputPanel.querySelectorAll("[data-filename]");
+      const allTabs = Array.from(
+        inputPanel.querySelectorAll("[data-filename]"),
+      );
       let tabEl: HTMLElement | null = null;
       for (const tab of allTabs) {
         const fn = tab.getAttribute("data-filename") || "";
-        if (fn === targetName || targetName.endsWith(fn) || fn.endsWith(targetName)) {
+        if (
+          fn === targetName ||
+          targetName.endsWith(fn) ||
+          fn.endsWith(targetName)
+        ) {
           tabEl = tab as HTMLElement;
           break;
         }
@@ -270,7 +295,7 @@ export default function DependencyPanel({
     }
 
     setShowAll(true);
-    const decorations: Array<{ range: any; options: any }> = [];
+    const decorations: Monaco.editor.IModelDeltaDecoration[] = [];
 
     for (const item of allDepItems) {
       const color = getDepColor(item.colorIdx, totalDeps);
@@ -289,33 +314,35 @@ export default function DependencyPanel({
     const editor = inputEditorRef.current;
     if (!editor || !currentModule) return;
 
-    const disposable = editor.onMouseMove((e: Monaco.editor.IEditorMouseEvent) => {
-      if (showAll || !e.target.position) return;
+    const disposable = editor.onMouseMove(
+      (e: Monaco.editor.IEditorMouseEvent) => {
+        if (showAll || !e.target.position) return;
 
-      const { lineNumber, column } = e.target.position;
-      let found = false;
+        const { lineNumber, column } = e.target.position;
+        let found = false;
 
-      for (const item of allDepItems) {
-        const { dep } = item;
-        if (!dep.loc) continue;
+        for (const item of allDepItems) {
+          const { dep } = item;
+          if (!dep.loc) continue;
 
-        const { start, end } = dep.loc;
-        if (
-          (lineNumber > start.line ||
-            (lineNumber === start.line && column >= start.column)) &&
-          (lineNumber < end.line ||
-            (lineNumber === end.line && column <= end.column + 1))
-        ) {
-          found = true;
-          handleDepHover(dep, item.colorIdx, item.key);
-          break;
+          const { start, end } = dep.loc;
+          if (
+            (lineNumber > start.line ||
+              (lineNumber === start.line && column >= start.column)) &&
+            (lineNumber < end.line ||
+              (lineNumber === end.line && column <= end.column + 1))
+          ) {
+            found = true;
+            handleDepHover(dep, item.colorIdx, item.key);
+            break;
+          }
         }
-      }
 
-      if (!found) {
-        handleDepLeave();
-      }
-    });
+        if (!found) {
+          handleDepLeave();
+        }
+      },
+    );
 
     const leaveDisposable = editor.onMouseLeave(() => {
       if (!showAll) {
@@ -327,7 +354,14 @@ export default function DependencyPanel({
       disposable.dispose();
       leaveDisposable.dispose();
     };
-  }, [inputEditorRef, currentModule, showAll, allDepItems, handleDepHover, handleDepLeave]);
+  }, [
+    inputEditorRef,
+    currentModule,
+    showAll,
+    allDepItems,
+    handleDepHover,
+    handleDepLeave,
+  ]);
 
   if (!currentModule) {
     return (
@@ -385,13 +419,15 @@ export default function DependencyPanel({
   };
 
   const depItems = allDepItems.filter((d) => d.section === "dep");
-  const presentationalItems = allDepItems.filter((d) => d.section === "presentational");
+  const presentationalItems = allDepItems.filter(
+    (d) => d.section === "presentational",
+  );
   const blockItems = allDepItems.filter((d) => d.section === "block");
   const blockGroups = new Map<number, DepItem[]>();
   for (const item of blockItems) {
     const bi = item.blockIndex ?? 0;
     if (!blockGroups.has(bi)) blockGroups.set(bi, []);
-    blockGroups.get(bi)!.push(item);
+    blockGroups.get(bi)?.push(item);
   }
 
   return (
@@ -424,7 +460,9 @@ export default function DependencyPanel({
                 onClick={() => toggleSection("dep")}
                 className="w-full flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50 hover:bg-muted/80 border-b border-border/50"
               >
-                <span className="text-[10px]">{collapsedSections.dep ? "\u25B6" : "\u25BC"}</span>
+                <span className="text-[10px]">
+                  {collapsedSections.dep ? "\u25B6" : "\u25BC"}
+                </span>
                 dependencies ({depItems.length})
               </button>
               {!collapsedSections.dep && depItems.map(renderDepItem)}
@@ -438,10 +476,13 @@ export default function DependencyPanel({
                 onClick={() => toggleSection("presentational")}
                 className="w-full flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50 hover:bg-muted/80 border-b border-border/50"
               >
-                <span className="text-[10px]">{collapsedSections.presentational ? "\u25B6" : "\u25BC"}</span>
+                <span className="text-[10px]">
+                  {collapsedSections.presentational ? "\u25B6" : "\u25BC"}
+                </span>
                 presentationalDependencies ({presentationalItems.length})
               </button>
-              {!collapsedSections.presentational && presentationalItems.map(renderDepItem)}
+              {!collapsedSections.presentational &&
+                presentationalItems.map(renderDepItem)}
             </>
           )}
 
@@ -452,7 +493,9 @@ export default function DependencyPanel({
                 onClick={() => toggleSection("blocks")}
                 className="w-full flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-muted-foreground bg-muted/50 hover:bg-muted/80 border-b border-border/50"
               >
-                <span className="text-[10px]">{collapsedSections.blocks ? "\u25B6" : "\u25BC"}</span>
+                <span className="text-[10px]">
+                  {collapsedSections.blocks ? "\u25B6" : "\u25BC"}
+                </span>
                 blocks ({blockGroups.size})
               </button>
               {!collapsedSections.blocks &&

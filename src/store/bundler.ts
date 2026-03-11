@@ -1,7 +1,7 @@
 import { atom } from "jotai";
+import type { RspackModuleDeps } from "@/lib/bundle/dependency";
 import { deserializeShareData } from "@/lib/share";
 import { PresetBasicLibrary } from "./presets";
-import type { RspackModuleDeps } from "@/lib/bundle/dependency";
 
 export interface SourceFile {
   filename: string;

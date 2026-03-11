@@ -1,8 +1,8 @@
-import { bundleResultAtom, inputFilesAtom } from "@/store/bundler";
 import { useAtomValue } from "jotai";
 import JSZip from "jszip";
 import { useCallback } from "react";
 import { toast } from "sonner";
+import { bundleResultAtom, inputFilesAtom } from "@/store/bundler";
 
 export function useDownloadProject() {
   const inputFiles = useAtomValue(inputFilesAtom);
