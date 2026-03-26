@@ -91,6 +91,24 @@ function replaceRequired(
   return nextSource;
 }
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function replaceRequiredImportSource(
+  source: string,
+  specifier: string,
+  replacement: string,
+  label: string,
+) {
+  return replaceRequired(
+    source,
+    new RegExp(`from\\s*["']${escapeRegExp(specifier)}["'];?`, "g"),
+    `from ${JSON.stringify(replacement)};`,
+    label,
+  );
+}
+
 function createBlobModuleUrl(source: string) {
   return URL.createObjectURL(
     new Blob([source], { type: "text/javascript;charset=utf-8" }),
@@ -165,65 +183,59 @@ async function getRspackBrowserEntryUrls(
     const workerModuleUrl = createBlobModuleUrl(workerSource);
     const wasmUrl = getRspackBrowserUrl(version);
 
-    let rewrittenWasiSource = replaceRequired(
+    let rewrittenWasiSource = replaceRequiredImportSource(
       wasiSource,
-      /from '@napi-rs\/wasm-runtime'/g,
-      `from ${JSON.stringify(
-        getJsdelivrEsmUrl(
-          "@napi-rs/wasm-runtime",
-          wasmRuntimeVersion,
-        ),
-      )}`,
+      "@napi-rs/wasm-runtime",
+      getJsdelivrEsmUrl(
+        "@napi-rs/wasm-runtime",
+        wasmRuntimeVersion,
+      ),
       "@napi-rs/wasm-runtime import",
     );
-    rewrittenWasiSource = replaceRequired(
+    rewrittenWasiSource = replaceRequiredImportSource(
       rewrittenWasiSource,
-      /from '@napi-rs\/wasm-runtime\/fs'/g,
-      `from ${JSON.stringify(
-        getJsdelivrEsmUrl(
-          "@napi-rs/wasm-runtime",
-          wasmRuntimeVersion,
-          "fs",
-        ),
-      )}`,
+      "@napi-rs/wasm-runtime/fs",
+      getJsdelivrEsmUrl(
+        "@napi-rs/wasm-runtime",
+        wasmRuntimeVersion,
+        "fs",
+      ),
       "@napi-rs/wasm-runtime/fs import",
     );
     rewrittenWasiSource = replaceRequired(
       rewrittenWasiSource,
-      /window\.RSPACK_WASM_URL \|\| new URL\('\.\/rspack\.wasm32-wasi\.wasm', import\.meta\.url\)\.href/g,
+      /window\.RSPACK_WASM_URL\s*\|\|\s*new URL\((["'])\.\/rspack\.wasm32-wasi\.wasm\1,\s*import\.meta\.url\)\.href/g,
       JSON.stringify(wasmUrl),
       "rspack wasm url",
     );
     rewrittenWasiSource = replaceRequired(
       rewrittenWasiSource,
-      /new URL\('\.\/wasi-worker-browser\.mjs', import\.meta\.url\)/g,
+      /new URL\((["'])\.\/wasi-worker-browser\.mjs\1,\s*import\.meta\.url\)/g,
       JSON.stringify(workerModuleUrl),
       "rspack worker url",
     );
 
     const wasiModuleUrl = createBlobModuleUrl(rewrittenWasiSource);
 
-    let rewrittenEntrySource = replaceRequired(
+    let rewrittenEntrySource = replaceRequiredImportSource(
       entrySource,
-      /from "\.\/rspack\.wasi-browser\.js";/g,
-      `from ${JSON.stringify(wasiModuleUrl)};`,
+      "./rspack.wasi-browser.js",
+      wasiModuleUrl,
       "rspack.wasi-browser import",
     );
-    rewrittenEntrySource = replaceRequired(
+    rewrittenEntrySource = replaceRequiredImportSource(
       rewrittenEntrySource,
-      /from "\.\/rslib-runtime\.js";/g,
-      `from ${JSON.stringify(runtimeModuleUrl)};`,
+      "./rslib-runtime.js",
+      runtimeModuleUrl,
       "rslib runtime import",
     );
-    rewrittenEntrySource = replaceRequired(
+    rewrittenEntrySource = replaceRequiredImportSource(
       rewrittenEntrySource,
-      /from "@rspack\/lite-tapable";/g,
-      `from ${JSON.stringify(
-        getJsdelivrEsmUrl(
-          "@rspack/lite-tapable",
-          liteTapableVersion,
-        ),
-      )};`,
+      "@rspack/lite-tapable",
+      getJsdelivrEsmUrl(
+        "@rspack/lite-tapable",
+        liteTapableVersion,
+      ),
       "@rspack/lite-tapable import",
     );
 

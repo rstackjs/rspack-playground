@@ -64,13 +64,9 @@ type DragState =
       startNode: Point;
     };
 
-function normalizePath(value: string | undefined) {
-  return normalizeGraphText(value);
-}
-
 function inferCategory(name: string, fallback?: RspackModuleCategory) {
   if (fallback) return fallback;
-  const normalized = normalizePath(name);
+  const normalized = normalizeGraphText(name);
   if (!normalized) return "runtime";
   if (normalized.includes("node_modules")) return "dependency";
   return "source";
@@ -121,7 +117,7 @@ function buildGraph(
   const aliases = new Map<string, string>();
 
   const registerAlias = (key: string | undefined, id: string) => {
-    const normalized = normalizePath(key);
+    const normalized = normalizeGraphText(key);
     if (normalized) {
       aliases.set(normalized, id);
     }
@@ -144,7 +140,7 @@ function buildGraph(
 
   const ensureVirtualNode = (dep: RspackDependency) => {
     const rawKey = dep.targetModuleId || dep.targetModuleName || dep.targetModule;
-    const normalized = normalizePath(rawKey);
+    const normalized = normalizeGraphText(rawKey);
     if (!normalized) return null;
 
     const existingId = aliases.get(normalized);
@@ -174,7 +170,7 @@ function buildGraph(
     }
 
     for (const key of [dep.targetModuleName, dep.targetModule]) {
-      const normalized = normalizePath(key);
+      const normalized = normalizeGraphText(key);
       const resolvedId = aliases.get(normalized);
       if (resolvedId) {
         return resolvedId;

@@ -1,3 +1,5 @@
+import { normalizePath } from "@/lib/normalizePath";
+
 export type Point = {
   x: number;
   y: number;
@@ -9,13 +11,7 @@ export type ViewState = {
   scale: number;
 };
 
-export function normalizeGraphText(value: string | undefined) {
-  return (value || "")
-    .replace(/\\/g, "/")
-    .replace(/^(?:\.\/)+/, "")
-    .replace(/^\/+/, "")
-    .trim();
-}
+export const normalizeGraphText = normalizePath;
 
 export function labelFromGraphText(name: string) {
   const normalized = normalizeGraphText(name);

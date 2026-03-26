@@ -16,6 +16,7 @@ import type {
   RspackModuleCategory,
   RspackModuleDeps,
 } from "@/lib/bundle/dependency";
+import { normalizePath } from "@/lib/normalizePath";
 import { cn } from "@/lib/utils";
 import type { SourceFile } from "@/store/bundler";
 import DependencyLines, { getDepColor } from "./DependencyLines";
@@ -49,14 +50,6 @@ type LineInfo = {
   endY: number;
   color: string;
 };
-
-function normalizePath(value: string | undefined) {
-  return (value || "")
-    .replace(/\\/g, "/")
-    .replace(/^(?:\.\/)+/, "")
-    .replace(/^\/+/, "")
-    .trim();
-}
 
 function matchesModulePath(a: string | undefined, b: string | undefined) {
   const left = normalizePath(a);

@@ -1,4 +1,6 @@
 // biome-ignore-all lint/suspicious/noExplicitAny: Rspack internal objects are untyped
+import { normalizePath } from "@/lib/normalizePath";
+
 export type RspackModuleCategory = "source" | "dependency" | "runtime";
 
 export interface RspackDependency {
@@ -341,19 +343,26 @@ function getChunkGroupOrigins(group: unknown) {
   }
 
   for (const origin of toArray((group as any)?.origins)) {
-    const request =
-      (origin as any)?.request ||
-      (origin as any)?.userRequest ||
-      normalizePath(String((origin as any)?.loc ?? ""));
+    const request = normalizePath(
+      (origin as any)?.request || (origin as any)?.userRequest,
+    );
+    const module = (origin as any)?.module;
+    const moduleName = module ? getModuleName(module) : "";
+    const location = formatOriginLocation((origin as any)?.loc);
+    const base = request || moduleName;
 
-    if (request) {
-      origins.add(String(request));
+    if (base && location) {
+      origins.add(`${base} @ ${location}`);
       continue;
     }
 
-    const module = (origin as any)?.module;
-    if (module) {
-      origins.add(getModuleName(module));
+    if (base) {
+      origins.add(base);
+      continue;
+    }
+
+    if (location) {
+      origins.add(location);
     }
   }
 
@@ -451,12 +460,35 @@ function toArray<T>(value: Iterable<T> | ArrayLike<T> | null | undefined): T[] {
   return [];
 }
 
-export function normalizePath(value: string) {
-  return value
-    .replace(/\\/g, "/")
-    .replace(/^\.\/+/, "")
-    .replace(/^\/+/, "")
-    .trim();
+function formatOriginLocation(loc: unknown) {
+  if (!loc) return "";
+  if (typeof loc === "string") {
+    return normalizePath(loc);
+  }
+  if (typeof loc !== "object") {
+    return "";
+  }
+
+  const source = normalizePath((loc as any)?.source);
+  const startLine = (loc as any)?.start?.line;
+  const startColumn = (loc as any)?.start?.column;
+  const endLine = (loc as any)?.end?.line;
+  const endColumn = (loc as any)?.end?.column;
+  const hasStart =
+    typeof startLine === "number" && typeof startColumn === "number";
+  const hasEnd = typeof endLine === "number" && typeof endColumn === "number";
+
+  const range =
+    hasStart && hasEnd
+      ? `${startLine}:${startColumn}-${endLine}:${endColumn}`
+      : hasStart
+        ? `${startLine}:${startColumn}`
+        : "";
+
+  if (source && range) {
+    return `${source}:${range}`;
+  }
+  return source || range;
 }
 
 function getModulePath(mod: unknown) {
