@@ -7,8 +7,7 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import DependencyPanel from "@/components/Dependencies";
 import CodeEditor from "@/components/Editor/CodeEditor";
 import SourcemapOverlay from "@/components/Editor/SourcemapOverlay";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import useBundle from "@/hooks/use-bundle";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSegmentDecorations } from "@/hooks/useSegmentDecorations";
@@ -116,40 +115,33 @@ function OutputPanel({
       <div ref={panelRef} className="flex flex-col h-full relative">
         <div className="flex items-center justify-between p-2 border-b bg-muted/30">
           <span className="text-sm font-medium">Output Files</span>
-          <span className="flex gap-4 text-xs text-accent-foreground">
-            <span className="flex gap-2 items-center">
-              <Checkbox
-                id="enable-deps"
-                checked={enableDependencies}
-                onCheckedChange={(state) =>
-                  setEnableDependencies(Boolean(state))
-                }
-              />
-              <Label htmlFor="enable-deps">Dependencies</Label>
-            </span>
-            <span className="flex gap-2 items-center">
-              <Checkbox
-                id="enable-sourcemap"
-                checked={enableSourcemap}
-                onCheckedChange={(state) => setEnableSourcemap(Boolean(state))}
-              />
-              <Label htmlFor="enable-sourcemap">Sourcemap</Label>
-            </span>
-            <span className="flex gap-2 items-center">
-              <Checkbox
-                id="format-output"
-                checked={formatCode}
-                onCheckedChange={handleFormatCodeChange}
-                disabled={enableSourcemap}
-              />
-              <Label
-                htmlFor="format-output"
-                className={enableSourcemap ? "text-muted-foreground" : ""}
-              >
-                Format Output
-              </Label>
-            </span>
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={enableDependencies ? "default" : "outline"}
+              onClick={() => setEnableDependencies(!enableDependencies)}
+            >
+              Dependencies
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={enableSourcemap ? "default" : "outline"}
+              onClick={() => setEnableSourcemap(!enableSourcemap)}
+            >
+              Sourcemap
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={formatCode && !enableSourcemap ? "default" : "outline"}
+              onClick={() => handleFormatCodeChange(!formatCode)}
+              disabled={enableSourcemap}
+            >
+              Format Output
+            </Button>
+          </div>
         </div>
         <div className="flex-1 min-h-0">
           {bundleResult ? (
@@ -429,8 +421,11 @@ function Editor() {
                 >
                   <DependencyPanel
                     modules={bundleResult.modules}
+                    chunks={bundleResult.chunks}
+                    chunkGroups={bundleResult.chunkGroups}
                     inputFiles={inputFiles}
                     activeInputFile={activeInputFile}
+                    setActiveInputFile={setActiveInputFile}
                     inputEditorRef={inputEditorRef}
                   />
                 </Panel>

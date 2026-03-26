@@ -43,7 +43,11 @@ import {
   isBundlingAtom,
   rspackVersionAtom,
 } from "@/store/bundler";
-import { presets } from "@/store/presets";
+import {
+  getPresetByName,
+  getPresetFiles,
+  presets,
+} from "@/store/presets";
 
 export default function Header() {
   const [rspackVersion, setRspackVersion] = useAtom(rspackVersionAtom);
@@ -58,8 +62,8 @@ export default function Header() {
   const [selectedPreset, setSelectedPreset] = useState(presets[0].name);
 
   const handleReset = () => {
-    const preset = presets.find((p) => p.name === selectedPreset);
-    const files = [...(preset?.files || [])];
+    const preset = getPresetByName(selectedPreset);
+    const files = preset ? getPresetFiles(preset, rspackVersion) : [];
     setInputFiles(files);
     handleBundle(files);
     window.history.replaceState(null, "", window.location.pathname);
@@ -80,6 +84,23 @@ export default function Header() {
       console.error("Failed to share:", error);
       toast.error("Failed to copy share link");
     }
+  };
+
+  const handleVersionChange = async (version: string) => {
+    if (version === rspackVersion) {
+      return;
+    }
+
+    setRspackVersion(version);
+    window.history.replaceState(
+      null,
+      "",
+      getShareUrl({
+        rspackVersion: version,
+        inputFiles,
+      }),
+    );
+    await handleBundle(inputFiles, version);
   };
 
   return (
@@ -163,20 +184,22 @@ export default function Header() {
             <Download className="h-4 w-4" />
             <span>Download</span>
           </Button>
-          <Preview />
-          <div className="flex items-center space-x-2 hidden">
-            <span className="text-sm text-muted-foreground">Version:</span>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-muted-foreground">Rspack Core</span>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" disabled={isBundling}>
                   v{rspackVersion}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-64">
                 {availableVersions.map((version) => (
                   <DropdownMenuItem
                     key={version}
-                    onClick={() => setRspackVersion(version)}
+                    disabled={isBundling}
+                    onClick={() => {
+                      void handleVersionChange(version);
+                    }}
                     className={rspackVersion === version ? "bg-accent" : ""}
                   >
                     v{version}
@@ -185,6 +208,7 @@ export default function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+          <Preview />
 
           <ModeToggle />
           <Button variant="ghost" size="icon" asChild>

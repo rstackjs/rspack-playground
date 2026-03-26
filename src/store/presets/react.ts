@@ -1,12 +1,13 @@
 import { RSPACK_CONFIG } from "../common";
-import type { SourcePreset } from ".";
+import {
+  isRspackV2OrLater,
+  type SourcePreset,
+} from ".";
 
-const preset: SourcePreset = {
-  name: "Basic React",
-  files: [
-    {
-      filename: RSPACK_CONFIG,
-      text: `import * as rspack from "@rspack/browser"
+function createRspackConfig(rspackVersion: string) {
+  const useCssAutoRule = isRspackV2OrLater(rspackVersion);
+
+  return `import * as rspack from "@rspack/browser"
 
 export default {
   mode: "development",
@@ -39,7 +40,15 @@ export default {
           },
         },
         type: "javascript/auto",
-      },
+      },${
+        useCssAutoRule
+          ? `
+      {
+        test: /\\.css$/,
+        type: "css/auto",
+      },`
+          : ""
+      }
       {
         test: /.(png|svg|jpg)$/,
         type: "asset/resource",
@@ -52,13 +61,25 @@ export default {
     }),
     new rspack.BrowserHttpImportEsmPlugin({ domain: "https://esm.sh" }),
   ],
-  experiments: {
-    css: true,
+  experiments: {${
+    useCssAutoRule
+      ? ""
+      : `
+    css: true,`
+  }
     buildHttp: {
       allowedUris: ["https://"],
     },
   },
-};`,
+};`;
+}
+
+const preset: SourcePreset = {
+  name: "Basic React",
+  createFiles: (rspackVersion) => [
+    {
+      filename: RSPACK_CONFIG,
+      text: createRspackConfig(rspackVersion),
     },
     {
       filename: "src/assets/react.svg",

@@ -1,51 +1,83 @@
 import { useAtom, useSetAtom } from "jotai";
 import { useCallback } from "react";
+import { bundle } from "@/lib/bundle";
 import {
   bindingLoadedAtom,
   bindingLoadingAtom,
   bundleResultAtom,
   isBundlingAtom,
+  rspackVersionAtom,
+  type BundleResult,
   type SourceFile,
 } from "@/store/bundler";
 import { activeOutputFileAtom } from "@/store/editor";
 
+function createBundleFailure(message: string): BundleResult {
+  return {
+    duration: 0,
+    output: [],
+    formattedOutput: [],
+    success: false,
+    errors: [message],
+    warnings: [],
+    sourcemaps: new Map(),
+    modules: [],
+    chunks: [],
+    chunkGroups: [],
+  };
+}
+
 export default function useBundle() {
-  const [bindingLoaded, setBindingLoaded] = useAtom(bindingLoadedAtom);
+  const [bindingLoadedVersion, setBindingLoadedVersion] =
+    useAtom(bindingLoadedAtom);
   const setBindingLoading = useSetAtom(bindingLoadingAtom);
 
   const setIsBundling = useSetAtom(isBundlingAtom);
   const setBundleResult = useSetAtom(bundleResultAtom);
   const [activeOutputFile, setActiveOutputFile] = useAtom(activeOutputFileAtom);
+  const [rspackVersion] = useAtom(rspackVersionAtom);
 
   const handleBundle = useCallback(
-    async (files: SourceFile[]) => {
+    async (files: SourceFile[], versionOverride?: string) => {
+      const targetVersion = versionOverride ?? rspackVersion;
+      const shouldLoadBinding = bindingLoadedVersion !== targetVersion;
+
       setIsBundling(true);
-      if (!bindingLoaded) {
+      if (shouldLoadBinding) {
         setBindingLoading(true);
       }
-      const bundler = await import("@/lib/bundle");
-      setBindingLoading(false);
-      setBindingLoaded(true);
 
-      const result = await bundler.bundle(files);
-      setBundleResult(result);
+      try {
+        const result = await bundle(files, targetVersion);
+        setBundleResult(result);
 
-      if (
-        result.output.length > 0 &&
-        activeOutputFile >= result.output.length
-      ) {
-        setActiveOutputFile(0);
+        if (shouldLoadBinding) {
+          setBindingLoadedVersion(targetVersion);
+        }
+
+        if (
+          result.output.length > 0 &&
+          activeOutputFile >= result.output.length
+        ) {
+          setActiveOutputFile(0);
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : "Failed to load rspack binding";
+        setBundleResult(createBundleFailure(message));
+      } finally {
+        setBindingLoading(false);
+        setIsBundling(false);
       }
-
-      setIsBundling(false);
     },
     [
       activeOutputFile,
-      bindingLoaded,
+      bindingLoadedVersion,
+      rspackVersion,
       setActiveOutputFile,
       setIsBundling,
       setBundleResult,
-      setBindingLoaded,
+      setBindingLoadedVersion,
       setBindingLoading,
     ],
   );
