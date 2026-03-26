@@ -260,7 +260,6 @@ export default function DependencyPanel({
     };
 
     for (const chunk of chunks) {
-      attach(chunk.id, chunk);
       for (const mod of chunk.modules) {
         attach(mod.id, chunk);
         attach(mod.name, chunk);
