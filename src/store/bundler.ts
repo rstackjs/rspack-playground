@@ -1,7 +1,15 @@
 import { atom } from "jotai";
-import type { RspackModuleDeps } from "@/lib/bundle/dependency";
+import rspackBrowserPackage from "@rspack/browser/package.json";
+import type {
+  RspackChunkInfo,
+  RspackChunkGroupInfo,
+  RspackModuleDeps,
+} from "@/lib/bundle/dependency";
 import { deserializeShareData } from "@/lib/share";
-import { PresetBasicLibrary } from "./presets";
+import {
+  getPresetFiles,
+  PresetBasicLibrary,
+} from "./presets";
 
 export interface SourceFile {
   filename: string;
@@ -17,6 +25,8 @@ export interface BundleResult {
   warnings: string[];
   sourcemaps: Map<string, string>; // output filename -> sourcemap JSON
   modules: RspackModuleDeps[]; // dependency data
+  chunks: RspackChunkInfo[]; // chunk graph data
+  chunkGroups: RspackChunkGroupInfo[]; // chunk group graph data
 }
 
 function getInitFiles() {
@@ -27,11 +37,14 @@ function getInitFiles() {
       return shareData.inputFiles;
     }
   }
-  return [...PresetBasicLibrary.files];
+  return getPresetFiles(
+    PresetBasicLibrary,
+    getInitRspackVersion() ?? rspackBrowserPackage.version,
+  );
 }
 
 // Bundle
-export const bindingLoadedAtom = atom(false);
+export const bindingLoadedAtom = atom<string | null>(null);
 export const bindingLoadingAtom = atom(false);
 export const isBundlingAtom = atom(false);
 export const inputFilesAtom = atom<SourceFile[]>(getInitFiles());
@@ -40,9 +53,7 @@ export const enableFormatCode = atom(true);
 
 // Version
 export const availableVersionsAtom = atom(async () => {
-  const res = await fetch(
-    "https://registry.npmjs.org/@rspack/binding-wasm32-wasi",
-  );
+  const res = await fetch("https://registry.npmjs.org/@rspack/browser");
   const data = await res.json();
   return Object.keys(data.versions).sort((a, b) => {
     return b.localeCompare(a, undefined, {
@@ -64,7 +75,12 @@ function getInitRspackVersion() {
 
 const defaultRspackVersionAtom = atom(async (get) => {
   const versions = await get(availableVersionsAtom);
-  return getInitRspackVersion() ?? versions[0] ?? "";
+  return (
+    getInitRspackVersion() ??
+    (versions.includes(rspackBrowserPackage.version)
+      ? rspackBrowserPackage.version
+      : versions[0] ?? "")
+  );
 });
 const overwrittenRspackVersionAtom = atom<string | null>(null);
 export const rspackVersionAtom = atom(
