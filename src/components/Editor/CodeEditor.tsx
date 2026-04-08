@@ -1,5 +1,6 @@
 import MonacoEditor from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
+import type React from "react";
 import FileTabs from "@/components/Editor/FileTabs";
 import { useTheme } from "@/components/ThemeProvider";
 import type { SourceFile } from "@/store/bundler";
@@ -7,6 +8,7 @@ import type { SourceFile } from "@/store/bundler";
 interface CodeEditorProps {
   files: SourceFile[];
   activeIndex: number;
+  tabsActions?: React.ReactNode;
   readonly?: boolean;
   onFileSelect: (index: number) => void;
   onFileCreate?: (filename: string) => void;
@@ -19,6 +21,7 @@ interface CodeEditorProps {
 export default function CodeEditor({
   files,
   activeIndex,
+  tabsActions,
   readonly = false,
   onFileSelect,
   onFileCreate,
@@ -94,6 +97,7 @@ export default function CodeEditor({
         onFileCreate={handleCreateFile}
         onFileDelete={handleDeleteFile}
         onFileRename={handleRenameFile}
+        actions={tabsActions}
         readonly={readonly}
       />
 

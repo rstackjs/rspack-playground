@@ -16,21 +16,23 @@ import type { SourceFile } from "@/store/bundler";
 interface FileTabsProps {
   files: SourceFile[];
   activeIndex: number;
+  actions?: React.ReactNode;
+  readonly?: boolean;
   onFileSelect: (index: number) => void;
   onFileCreate: (filename: string) => void;
   onFileDelete: (index: number) => void;
   onFileRename: (index: number, newName: string) => void;
-  readonly?: boolean;
 }
 
 export default function FileTabs({
   files,
   activeIndex,
+  actions,
+  readonly = false,
   onFileSelect,
   onFileCreate,
   onFileDelete,
   onFileRename,
-  readonly = false,
 }: FileTabsProps) {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
@@ -118,17 +120,20 @@ export default function FileTabs({
           ))}
         </div>
 
-        {!readonly && (
-          <div className="flex items-center px-1.5">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="size-6"
-              onClick={() => setShowCreateDialog(true)}
-              title="New file"
-            >
-              <Plus className="size-3.5" />
-            </Button>
+        {(!readonly || actions) && (
+          <div className="relative flex items-center gap-1 px-1.5">
+            {!readonly && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-6"
+                onClick={() => setShowCreateDialog(true)}
+                title="New file"
+              >
+                <Plus className="size-3.5" />
+              </Button>
+            )}
+            {actions}
           </div>
         )}
       </div>

@@ -1,13 +1,16 @@
 import ansis from "ansis";
 import { useAtom, useAtomValue } from "jotai";
 import { debounce } from "lodash-es";
+import { Check, Settings2, X } from "lucide-react";
 import type * as Monaco from "monaco-editor";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import DependencyPanel from "@/components/Dependencies";
 import CodeEditor from "@/components/Editor/CodeEditor";
 import SourcemapOverlay from "@/components/Editor/SourcemapOverlay";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import useBundle from "@/hooks/use-bundle";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSegmentDecorations } from "@/hooks/useSegmentDecorations";
@@ -94,6 +97,7 @@ function OutputPanel({
   panelRef,
 }: OutputPanelProps) {
   const [formatCode, setFormatCode] = useAtom(enableFormatCode);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Handle format code change - disable sourcemap if enabling format
   const handleFormatCodeChange = useCallback(
@@ -107,39 +111,79 @@ function OutputPanel({
     [setFormatCode, enableSourcemap, setEnableSourcemap],
   );
 
+  const outputSettings = (
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="size-6"
+        onClick={() => setShowSettings((open) => !open)}
+        title="Output settings"
+        aria-label="Output settings"
+      >
+        <Settings2 className="size-3.5" />
+      </Button>
+      {showSettings && (
+        <div className="absolute top-full right-0 z-20 mt-2 w-56 rounded-lg border bg-background p-3 shadow-lg">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="text-sm font-medium">Output Settings</div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-6"
+              onClick={() => setShowSettings(false)}
+              title="Close settings"
+              aria-label="Close settings"
+            >
+              <X className="size-3.5" />
+            </Button>
+          </div>
+          <div className="space-y-3">
+            <Label className="justify-between">
+              <span className="text-sm font-normal">Dependencies</span>
+              <Checkbox
+                checked={enableDependencies}
+                onCheckedChange={(checked) =>
+                  setEnableDependencies(Boolean(checked))
+                }
+              />
+            </Label>
+            <Label className="justify-between">
+              <span className="text-sm font-normal">Sourcemap</span>
+              <Checkbox
+                checked={enableSourcemap}
+                onCheckedChange={(checked) =>
+                  setEnableSourcemap(Boolean(checked))
+                }
+              />
+            </Label>
+            <Label className="justify-between">
+              <span className="text-sm font-normal">Format output</span>
+              <Checkbox
+                checked={formatCode && !enableSourcemap}
+                disabled={enableSourcemap}
+                onCheckedChange={handleFormatCodeChange}
+              />
+            </Label>
+            {enableSourcemap && (
+              <div className="flex items-start gap-2 rounded-md bg-muted/50 px-2 py-1.5 text-xs text-muted-foreground">
+                <Check className="mt-0.5 size-3 shrink-0" />
+                <span>
+                  Format output is unavailable while sourcemap is enabled.
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+
   return (
     <Panel id="output" defaultSize={50} minSize={20} className="min-h-0">
       <div ref={panelRef} className="flex flex-col h-full relative">
-        <div className="flex items-center justify-between p-2 border-b bg-muted/30">
-          <span className="text-sm font-medium">Output Files</span>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              size="sm"
-              variant={enableDependencies ? "default" : "outline"}
-              onClick={() => setEnableDependencies(!enableDependencies)}
-            >
-              Dependencies
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={enableSourcemap ? "default" : "outline"}
-              onClick={() => setEnableSourcemap(!enableSourcemap)}
-            >
-              Sourcemap
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant={formatCode && !enableSourcemap ? "default" : "outline"}
-              onClick={() => handleFormatCodeChange(!formatCode)}
-              disabled={enableSourcemap}
-            >
-              Format Output
-            </Button>
-          </div>
-        </div>
         <div className="flex-1 min-h-0">
           {bundleResult ? (
             <PanelGroup
@@ -156,6 +200,7 @@ function OutputPanel({
                   }
                   activeIndex={activeOutputFile}
                   onFileSelect={setActiveOutputFile}
+                  tabsActions={outputSettings}
                   readonly
                   onEditorMount={onEditorMount}
                 />
