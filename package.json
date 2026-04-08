@@ -8,7 +8,7 @@
     "build:sw": "rslib build",
     "dev": "rsbuild dev --open",
     "format": "oxfmt",
-    "check": "biome check --write",
+    "lint": "rslint --fix .",
     "preview": "rsbuild preview"
   },
   "dependencies": {
@@ -43,6 +43,7 @@
     "@rsbuild/core": "^1.7.5",
     "@rsbuild/plugin-react": "^1.4.6",
     "@rslib/core": "^0.20.3",
+    "@rslint/core": "^0.3.4",
     "@tailwindcss/postcss": "^4.2.2",
     "@types/lodash-es": "^4.17.12",
     "@types/react": "^19.2.14",
