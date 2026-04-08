@@ -3,7 +3,7 @@ packages:
   - sw
 
 ignoredBuiltDependencies:
-  - '@tailwindcss/oxide'
+  - "@tailwindcss/oxide"
 
 patchedDependencies:
-  '@rspack/browser': patches/@rspack__browser.patch
+  "@rspack/browser": patches/@rspack__browser.patch

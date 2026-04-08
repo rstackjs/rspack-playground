@@ -5,9 +5,7 @@ import { deserializeShareData } from "@/lib/share";
 export const deprecatedRspackVersions = ["2.0.0-rc.1"] as const;
 
 export function isDeprecatedRspackVersion(version: string) {
-  return deprecatedRspackVersions.includes(
-    version as (typeof deprecatedRspackVersions)[number],
-  );
+  return deprecatedRspackVersions.includes(version as (typeof deprecatedRspackVersions)[number]);
 }
 
 function getEnabledRspackVersions(versions: string[]) {
@@ -64,9 +62,7 @@ const defaultRspackVersionAtom = atom(async (get) => {
   const initialVersion = getInitRspackVersionFromHash();
 
   return (
-    (initialVersion && !isDeprecatedRspackVersion(initialVersion)
-      ? initialVersion
-      : undefined) ??
+    (initialVersion && !isDeprecatedRspackVersion(initialVersion) ? initialVersion : undefined) ??
     (versions.includes(rspackBrowserPackage.version)
       ? rspackBrowserPackage.version
       : (versions[0] ?? ""))

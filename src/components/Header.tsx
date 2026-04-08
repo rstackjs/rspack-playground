@@ -31,11 +31,7 @@ import {
 import useBundle from "@/hooks/use-bundle";
 import { useDownloadProject } from "@/hooks/use-download";
 import { getShareUrl, type ShareData } from "@/lib/share";
-import {
-  bundleResultAtom,
-  inputFilesAtom,
-  isBundlingAtom,
-} from "@/store/bundler";
+import { bundleResultAtom, inputFilesAtom, isBundlingAtom } from "@/store/bundler";
 import { getPresetByName, getPresetFiles, presets } from "@/store/presets";
 import {
   deprecatedAvailableRspackVersionsAtom,
@@ -49,9 +45,7 @@ export default function Header() {
 
   const [rspackVersion, setRspackVersion] = useAtom(rspackVersionAtom);
   const enabledVersions = useAtomValue(enabledRspackVersionsAtom);
-  const deprecatedVersions = useAtomValue(
-    deprecatedAvailableRspackVersionsAtom,
-  );
+  const deprecatedVersions = useAtomValue(deprecatedAvailableRspackVersionsAtom);
   const [bundleResult] = useAtom(bundleResultAtom);
   const [isBundling] = useAtom(isBundlingAtom);
   const [inputFiles] = useAtom(inputFilesAtom);
@@ -205,13 +199,9 @@ export default function Header() {
                   <AlertDialogTitle>Reset Files</AlertDialogTitle>
                   <AlertDialogDescription>
                     <span>
-                      This will reset all files to a preset. This action cannot
-                      be undone.
+                      This will reset all files to a preset. This action cannot be undone.
                     </span>
-                    <Select
-                      value={selectedPreset}
-                      onValueChange={setSelectedPreset}
-                    >
+                    <Select value={selectedPreset} onValueChange={setSelectedPreset}>
                       <SelectTrigger className="w-[180px] mt-4">
                         <SelectValue placeholder="Select a preset" />
                       </SelectTrigger>
@@ -230,9 +220,7 @@ export default function Header() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleReset}>
-                    Reset
-                  </AlertDialogAction>
+                  <AlertDialogAction onClick={handleReset}>Reset</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -241,12 +229,7 @@ export default function Header() {
           <div className="h-4 w-px bg-border" />
           <div className="flex items-center gap-0.5 pl-3">
             <ModeToggle />
-            <Button
-              variant="ghost"
-              size="icon"
-              className={iconButtonClassName}
-              asChild
-            >
+            <Button variant="ghost" size="icon" className={iconButtonClassName} asChild>
               <a
                 href="https://github.com/rspack-contrib/rspack-playground"
                 target="_blank"

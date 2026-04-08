@@ -20,10 +20,7 @@ export function isRspackV2OrLater(rspackVersion: string) {
   return Number.isFinite(major) && major >= 2;
 }
 
-export function getPresetFiles(
-  preset: SourcePreset,
-  rspackVersion: string,
-): SourceFile[] {
+export function getPresetFiles(preset: SourcePreset, rspackVersion: string): SourceFile[] {
   const files = preset.createFiles?.(rspackVersion) ?? preset.files ?? [];
   return cloneFiles(files);
 }
@@ -39,9 +36,4 @@ export const presets: SourcePreset[] = [
   PresetModuleFederationApp,
 ];
 
-export {
-  PresetBasicLibrary,
-  PresetEsmSh,
-  PresetReact,
-  PresetModuleFederationApp,
-};
+export { PresetBasicLibrary, PresetEsmSh, PresetReact, PresetModuleFederationApp };

@@ -11,9 +11,7 @@ export const serializeShareData = (data: ShareData): string => {
   const jsonString = JSON.stringify(data);
   // Convert string to UTF-8 bytes, then to base64
   const utf8Bytes = new TextEncoder().encode(jsonString);
-  const binaryString = Array.from(utf8Bytes, (byte) =>
-    String.fromCharCode(byte),
-  ).join("");
+  const binaryString = Array.from(utf8Bytes, (byte) => String.fromCharCode(byte)).join("");
   return btoa(binaryString);
 };
 
@@ -21,9 +19,7 @@ export const deserializeShareData = (base64: string): ShareData | null => {
   try {
     // Decode base64 to binary string, then to UTF-8 bytes
     const binaryString = atob(base64);
-    const utf8Bytes = Uint8Array.from(binaryString, (char) =>
-      char.charCodeAt(0),
-    );
+    const utf8Bytes = Uint8Array.from(binaryString, (char) => char.charCodeAt(0));
     const json = new TextDecoder().decode(utf8Bytes);
     const data = JSON.parse(json);
 

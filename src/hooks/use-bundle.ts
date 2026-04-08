@@ -28,8 +28,7 @@ function createBundleFailure(message: string): BundleResult {
 }
 
 export default function useBundle() {
-  const [bindingLoadedVersion, setBindingLoadedVersion] =
-    useAtom(bindingLoadedAtom);
+  const [bindingLoadedVersion, setBindingLoadedVersion] = useAtom(bindingLoadedAtom);
   const setBindingLoading = useSetAtom(bindingLoadingAtom);
 
   const setIsBundling = useSetAtom(isBundlingAtom);
@@ -55,17 +54,11 @@ export default function useBundle() {
           setBindingLoadedVersion(targetVersion);
         }
 
-        if (
-          result.output.length > 0 &&
-          activeOutputFile >= result.output.length
-        ) {
+        if (result.output.length > 0 && activeOutputFile >= result.output.length) {
           setActiveOutputFile(0);
         }
       } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Failed to load rspack binding";
+        const message = error instanceof Error ? error.message : "Failed to load rspack binding";
         setBundleResult(createBundleFailure(message));
       } finally {
         setBindingLoading(false);

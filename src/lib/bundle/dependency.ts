@@ -82,177 +82,160 @@ export class DependenciesPlugin {
       return raw;
     }
 
-    (compiler as any).hooks.compilation.tap(
-      "DepsExtractor",
-      (compilation: unknown) => {
-        (compilation as any).hooks.optimizeChunkModules.tap(
-          "DepsExtractor",
-          () => {
-            try {
-              const modules = toArray((compilation as any).modules);
-              const moduleGraph = (compilation as any).moduleGraph;
-              const chunkGraph = (compilation as any).chunkGraph;
-              const chunks = toArray((compilation as any).chunks);
-              const chunkGroups = getChunkGroups(compilation, chunks);
+    (compiler as any).hooks.compilation.tap("DepsExtractor", (compilation: unknown) => {
+      (compilation as any).hooks.optimizeChunkModules.tap("DepsExtractor", () => {
+        try {
+          const modules = toArray((compilation as any).modules);
+          const moduleGraph = (compilation as any).moduleGraph;
+          const chunkGraph = (compilation as any).chunkGraph;
+          const chunks = toArray((compilation as any).chunks);
+          const chunkGroups = getChunkGroups(compilation, chunks);
 
-              this.extractedModules = modules.map((mod: unknown) => {
-                const modulePath = getModulePath(mod);
+          this.extractedModules = modules.map((mod: unknown) => {
+            const modulePath = getModulePath(mod);
 
-                const deps: RspackDependency[] = toArray(
-                  (mod as any).dependencies,
-                ).map((dep: unknown) => extractDep(dep, moduleGraph));
+            const deps: RspackDependency[] = toArray((mod as any).dependencies).map(
+              (dep: unknown) => extractDep(dep, moduleGraph),
+            );
 
-                const presentationalDeps: RspackDependency[] = toArray(
-                  (mod as any).presentationalDependencies,
-                ).map((dep: unknown) => extractDep(dep, moduleGraph));
+            const presentationalDeps: RspackDependency[] = toArray(
+              (mod as any).presentationalDependencies,
+            ).map((dep: unknown) => extractDep(dep, moduleGraph));
 
-                const blocks: RspackBlock[] = toArray((mod as any).blocks).map(
-                  (block: unknown) => {
-                    const serialized = getRawData(block) as RspackBlock;
-                    serialized.dependencies = toArray(
-                      (block as any).dependencies,
-                    ).map((dep: unknown) => extractDep(dep, moduleGraph));
-                    return serialized;
-                  },
-                );
+            const blocks: RspackBlock[] = toArray((mod as any).blocks).map((block: unknown) => {
+              const serialized = getRawData(block) as RspackBlock;
+              serialized.dependencies = toArray((block as any).dependencies).map((dep: unknown) =>
+                extractDep(dep, moduleGraph),
+              );
+              return serialized;
+            });
 
-                return {
-                  id: getModuleId(mod),
-                  path: modulePath,
+            return {
+              id: getModuleId(mod),
+              path: modulePath,
+              name: getModuleName(mod),
+              category: getModuleCategory(mod),
+              deps,
+              presentationalDeps,
+              blocks,
+            };
+          });
+
+          const chunkGroupIdCache = new Map<any, string>();
+          const getChunkGroupId = (group: unknown) => {
+            if (chunkGroupIdCache.has(group)) {
+              return chunkGroupIdCache.get(group) ?? "";
+            }
+
+            const rawId =
+              (group as any)?.ukey ??
+              (group as any)?.groupDebugId ??
+              (group as any)?.index ??
+              (group as any)?.name ??
+              (group as any)?.options?.name ??
+              `group-${chunkGroupIdCache.size}`;
+            const id = String(rawId);
+            chunkGroupIdCache.set(group, id);
+            return id;
+          };
+
+          const getChunkFallbackUkey = (chunk: unknown, fallbackIndex?: number) => {
+            const directUkey =
+              (chunk as any)?.ukey ?? (chunk as any)?.debugId ?? (chunk as any)?.chunkDebugId;
+            if (directUkey !== undefined && directUkey !== null && directUkey !== "") {
+              return String(directUkey);
+            }
+
+            if (fallbackIndex !== undefined) {
+              return `chunk-${fallbackIndex}`;
+            }
+
+            return "";
+          };
+
+          const chunkIdCache = new Map<any, string>();
+          const getChunkId = (chunk: unknown) => {
+            if (chunkIdCache.has(chunk)) {
+              return chunkIdCache.get(chunk) ?? "";
+            }
+
+            const files = toArray((chunk as any)?.files).map(String);
+            const explicitId = (chunk as any)?.id ?? toArray((chunk as any)?.ids)[0];
+            const fallbackUkey = getChunkFallbackUkey(chunk, chunkIdCache.size);
+            const rawId =
+              explicitId !== undefined && explicitId !== null && explicitId !== ""
+                ? explicitId
+                : fallbackUkey || (chunk as any)?.name || files[0] || `chunk-${chunkIdCache.size}`;
+            const id = String(rawId);
+            chunkIdCache.set(chunk, id);
+            return id;
+          };
+
+          this.extractedChunks = chunks
+            .map((chunk: unknown) => {
+              const modulesInChunk = getChunkModules(chunk, chunkGraph);
+              const chunkModules = new Map<string, RspackChunkModuleRef>();
+
+              for (const mod of modulesInChunk) {
+                const id = getModuleId(mod);
+                if (!id || chunkModules.has(id)) continue;
+                chunkModules.set(id, {
+                  id,
+                  path: getModulePath(mod),
                   name: getModuleName(mod),
                   category: getModuleCategory(mod),
-                  deps,
-                  presentationalDeps,
-                  blocks,
-                };
-              });
+                });
+              }
 
-              const chunkGroupIdCache = new Map<any, string>();
-              const getChunkGroupId = (group: unknown) => {
-                if (chunkGroupIdCache.has(group)) {
-                  return chunkGroupIdCache.get(group) ?? "";
-                }
-
-                const rawId =
-                  (group as any)?.ukey ??
-                  (group as any)?.groupDebugId ??
-                  (group as any)?.index ??
-                  (group as any)?.name ??
-                  (group as any)?.options?.name ??
-                  `group-${chunkGroupIdCache.size}`;
-                const id = String(rawId);
-                chunkGroupIdCache.set(group, id);
-                return id;
+              const id = getChunkId(chunk);
+              return {
+                id,
+                name: getChunkName(chunk, id, getChunkFallbackUkey(chunk)),
+                files: toArray((chunk as any)?.files)
+                  .map(String)
+                  .sort(),
+                runtime: toArray((chunk as any)?.runtime)
+                  .map(String)
+                  .sort(),
+                entry: isChunkEntry(chunk),
+                initial: isChunkInitial(chunk),
+                groups: toArray((chunk as any)?.groupsIterable)
+                  .map(getChunkGroupId)
+                  .filter(Boolean)
+                  .sort(),
+                modules: [...chunkModules.values()].sort(compareModules),
               };
+            })
+            .sort(compareChunks);
 
-              const getChunkFallbackUkey = (
-                chunk: unknown,
-                fallbackIndex?: number,
-              ) => {
-                const directUkey =
-                  (chunk as any)?.ukey ??
-                  (chunk as any)?.debugId ??
-                  (chunk as any)?.chunkDebugId;
-                if (directUkey !== undefined && directUkey !== null && directUkey !== "") {
-                  return String(directUkey);
-                }
-
-                if (fallbackIndex !== undefined) {
-                  return `chunk-${fallbackIndex}`;
-                }
-
-                return "";
+          this.extractedChunkGroups = chunkGroups
+            .map((group: unknown) => {
+              const id = getChunkGroupId(group);
+              return {
+                id,
+                name: getChunkGroupName(group, id),
+                initial: isChunkGroupInitial(group),
+                parents: getRelatedGroupIds(group, "parents", getChunkGroupId),
+                children: getRelatedGroupIds(group, "children", getChunkGroupId),
+                chunks: [
+                  ...new Set(
+                    toArray((group as any)?.chunks)
+                      .map(getChunkId)
+                      .filter(Boolean),
+                  ),
+                ].sort(),
+                origins: getChunkGroupOrigins(group),
               };
-
-              const chunkIdCache = new Map<any, string>();
-              const getChunkId = (chunk: unknown) => {
-                if (chunkIdCache.has(chunk)) {
-                  return chunkIdCache.get(chunk) ?? "";
-                }
-
-                const files = toArray((chunk as any)?.files).map(String);
-                const explicitId =
-                  (chunk as any)?.id ?? toArray((chunk as any)?.ids)[0];
-                const fallbackUkey = getChunkFallbackUkey(chunk, chunkIdCache.size);
-                const rawId =
-                  explicitId !== undefined && explicitId !== null && explicitId !== ""
-                    ? explicitId
-                    : fallbackUkey || (chunk as any)?.name || files[0] ||
-                  `chunk-${chunkIdCache.size}`;
-                const id = String(rawId);
-                chunkIdCache.set(chunk, id);
-                return id;
-              };
-
-              this.extractedChunks = chunks
-                .map((chunk: unknown) => {
-                  const modulesInChunk = getChunkModules(chunk, chunkGraph);
-                  const chunkModules = new Map<string, RspackChunkModuleRef>();
-
-                  for (const mod of modulesInChunk) {
-                    const id = getModuleId(mod);
-                    if (!id || chunkModules.has(id)) continue;
-                    chunkModules.set(id, {
-                      id,
-                      path: getModulePath(mod),
-                      name: getModuleName(mod),
-                      category: getModuleCategory(mod),
-                    });
-                  }
-
-                  const id = getChunkId(chunk);
-                  return {
-                    id,
-                    name: getChunkName(chunk, id, getChunkFallbackUkey(chunk)),
-                    files: toArray((chunk as any)?.files).map(String).sort(),
-                    runtime: toArray((chunk as any)?.runtime).map(String).sort(),
-                    entry: isChunkEntry(chunk),
-                    initial: isChunkInitial(chunk),
-                    groups: toArray((chunk as any)?.groupsIterable)
-                      .map(getChunkGroupId)
-                      .filter(Boolean)
-                      .sort(),
-                    modules: [...chunkModules.values()].sort(compareModules),
-                  };
-                })
-                .sort(compareChunks);
-
-              this.extractedChunkGroups = chunkGroups
-                .map((group: unknown) => {
-                  const id = getChunkGroupId(group);
-                  return {
-                    id,
-                    name: getChunkGroupName(group, id),
-                    initial: isChunkGroupInitial(group),
-                    parents: getRelatedGroupIds(
-                      group,
-                      "parents",
-                      getChunkGroupId,
-                    ),
-                    children: getRelatedGroupIds(
-                      group,
-                      "children",
-                      getChunkGroupId,
-                    ),
-                    chunks: [...new Set(
-                      toArray((group as any)?.chunks)
-                        .map(getChunkId)
-                        .filter(Boolean),
-                    )].sort(),
-                    origins: getChunkGroupOrigins(group),
-                  };
-                })
-                .sort(compareChunkGroups);
-            } catch (e) {
-              console.warn("[DepsExtractor] Failed to extract deps:", e);
-              this.extractedModules = [];
-              this.extractedChunks = [];
-              this.extractedChunkGroups = [];
-            }
-          },
-        );
-      },
-    );
+            })
+            .sort(compareChunkGroups);
+        } catch (e) {
+          console.warn("[DepsExtractor] Failed to extract deps:", e);
+          this.extractedModules = [];
+          this.extractedChunks = [];
+          this.extractedChunkGroups = [];
+        }
+      });
+    });
   }
 }
 
@@ -263,10 +246,7 @@ function compareModules(a: RspackChunkModuleRef, b: RspackChunkModuleRef) {
     runtime: 2,
   } satisfies Record<RspackModuleCategory, number>;
 
-  return (
-    categoryOrder[a.category] - categoryOrder[b.category] ||
-    a.name.localeCompare(b.name)
-  );
+  return categoryOrder[a.category] - categoryOrder[b.category] || a.name.localeCompare(b.name);
 }
 
 function compareChunks(a: RspackChunkInfo, b: RspackChunkInfo) {
@@ -282,16 +262,12 @@ function compareChunkGroups(a: RspackChunkGroupInfo, b: RspackChunkGroupInfo) {
 }
 
 function getChunkModules(chunk: unknown, chunkGraph: unknown): unknown[] {
-  const graphModules = toArray(
-    (chunkGraph as any)?.getChunkModulesIterable?.(chunk),
-  );
+  const graphModules = toArray((chunkGraph as any)?.getChunkModulesIterable?.(chunk));
   if (graphModules.length > 0) {
     return graphModules;
   }
 
-  return toArray(
-    (chunk as any)?.modulesIterable ?? (chunk as any)?.getModules?.(),
-  );
+  return toArray((chunk as any)?.modulesIterable ?? (chunk as any)?.getModules?.());
 }
 
 function getChunkGroups(compilation: unknown, chunks: unknown[]) {
@@ -320,8 +296,7 @@ function getRelatedGroupIds(
   getChunkGroupId: (group: unknown) => string,
 ) {
   const ids = new Set<string>();
-  const relationKey =
-    relation === "children" ? "childrenIterable" : "parentsIterable";
+  const relationKey = relation === "children" ? "childrenIterable" : "parentsIterable";
 
   for (const relatedGroup of toArray((group as any)?.[relationKey])) {
     const id = getChunkGroupId(relatedGroup);
@@ -343,9 +318,7 @@ function getChunkGroupOrigins(group: unknown) {
   }
 
   for (const origin of toArray((group as any)?.origins)) {
-    const request = normalizePath(
-      (origin as any)?.request || (origin as any)?.userRequest,
-    );
+    const request = normalizePath((origin as any)?.request || (origin as any)?.userRequest);
     const module = (origin as any)?.module;
     const moduleName = module ? getModuleName(module) : "";
     const location = formatOriginLocation((origin as any)?.loc);
@@ -412,8 +385,7 @@ function isChunkEntry(chunk: unknown) {
     /* ignore */
   }
 
-  const entryModulesIterable =
-    (chunk as any)?.entryModulesIterable ?? (chunk as any)?.entryModules;
+  const entryModulesIterable = (chunk as any)?.entryModulesIterable ?? (chunk as any)?.entryModules;
   if (entryModulesIterable) {
     return toArray(entryModulesIterable).length > 0;
   }
@@ -474,8 +446,7 @@ function formatOriginLocation(loc: unknown) {
   const startColumn = (loc as any)?.start?.column;
   const endLine = (loc as any)?.end?.line;
   const endColumn = (loc as any)?.end?.column;
-  const hasStart =
-    typeof startLine === "number" && typeof startColumn === "number";
+  const hasStart = typeof startLine === "number" && typeof startColumn === "number";
   const hasEnd = typeof endLine === "number" && typeof endColumn === "number";
 
   const range =
@@ -565,8 +536,7 @@ function getRawData(obj: unknown): unknown {
     }
 
     for (const key of allKeys) {
-      if (key === "constructor" || key.startsWith("_") || key === "compilation")
-        continue;
+      if (key === "constructor" || key.startsWith("_") || key === "compilation") continue;
       try {
         const v = (val as Record<string, unknown>)[key];
         if (typeof v === "function") continue;

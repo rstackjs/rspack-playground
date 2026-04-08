@@ -1,8 +1,5 @@
 import { RSPACK_CONFIG } from "../common";
-import {
-  isRspackV2OrLater,
-  type SourcePreset,
-} from ".";
+import { isRspackV2OrLater, type SourcePreset } from ".";
 
 function createRspackConfig(rspackVersion: string) {
   const useCssAutoRule = isRspackV2OrLater(rspackVersion);

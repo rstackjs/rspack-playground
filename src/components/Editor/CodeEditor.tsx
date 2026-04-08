@@ -108,8 +108,7 @@ export default function CodeEditor({
           theme={theme === "dark" ? "vs-dark" : "vs"}
           onChange={handleContentChange}
           onMount={(editor, monaco) => {
-            const jsOptions =
-              monaco.languages.typescript.javascriptDefaults.getCompilerOptions();
+            const jsOptions = monaco.languages.typescript.javascriptDefaults.getCompilerOptions();
             monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
               ...jsOptions,
               jsx: monaco.languages.typescript.JsxEmit.React,
@@ -118,8 +117,7 @@ export default function CodeEditor({
               target: monaco.languages.typescript.ScriptTarget.ESNext,
             });
 
-            const tsOptions =
-              monaco.languages.typescript.javascriptDefaults.getCompilerOptions();
+            const tsOptions = monaco.languages.typescript.javascriptDefaults.getCompilerOptions();
             monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
               ...tsOptions,
               jsx: monaco.languages.typescript.JsxEmit.React,

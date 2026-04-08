@@ -80,8 +80,7 @@ export default function FileTabs({
               data-filename={file.filename}
               className={cn(
                 "group flex h-9 flex-shrink-0 items-center space-x-1.5 border-r px-3 text-sm cursor-pointer hover:bg-accent/50 transition-colors",
-                activeIndex === index &&
-                  "bg-background border-b-2 border-b-primary",
+                activeIndex === index && "bg-background border-b-2 border-b-primary",
               )}
               onClick={() => onFileSelect(index)}
             >
@@ -185,9 +184,7 @@ export default function FileTabs({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New File</DialogTitle>
-            <DialogDescription>
-              Enter the name for the new file
-            </DialogDescription>
+            <DialogDescription>Enter the name for the new file</DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <input

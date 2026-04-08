@@ -98,9 +98,7 @@ export default function SourcemapOverlay({
     let lineHeight = 20; // sensible default
     try {
       // Try to get from editor options
-      const optionValue = outputEditor.getOption(
-        66 /* EditorOption.lineHeight */,
-      );
+      const optionValue = outputEditor.getOption(66 /* EditorOption.lineHeight */);
       if (typeof optionValue === "number" && optionValue > 0) {
         lineHeight = optionValue;
       } else {
