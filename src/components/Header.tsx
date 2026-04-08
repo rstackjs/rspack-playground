@@ -19,12 +19,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
   Select,
   SelectContent,
   SelectGroup,
@@ -43,13 +37,12 @@ import {
   isBundlingAtom,
   rspackVersionAtom,
 } from "@/store/bundler";
-import {
-  getPresetByName,
-  getPresetFiles,
-  presets,
-} from "@/store/presets";
+import { getPresetByName, getPresetFiles, presets } from "@/store/presets";
 
 export default function Header() {
+  const iconButtonClassName =
+    "size-7 rounded-md border-0 bg-transparent text-muted-foreground shadow-none hover:bg-accent/80 hover:text-foreground";
+
   const [rspackVersion, setRspackVersion] = useAtom(rspackVersionAtom);
   const availableVersions = useAtomValue(availableVersionsAtom);
   const [bundleResult] = useAtom(bundleResultAtom);
@@ -105,122 +98,147 @@ export default function Header() {
 
   return (
     <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-14 items-center px-4">
-        <div className="flex items-center space-x-3 max-h-full">
-          <Logo className="w-10 h-10" />
-          <h1 className="text-lg font-semibold">Rspack Playground</h1>
+      <div className="flex h-12 items-center px-3">
+        <div className="flex max-h-full items-center space-x-2.5">
+          <Logo className="h-8 w-8" />
+          <h1 className="text-base font-semibold">Rspack Playground</h1>
         </div>
         <div className="flex-1" />
-        <div className="flex items-center space-x-3">
-          {/* Bundle Duration */}
-          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-            <Clock className="h-4 w-4" />
-            <span>
-              {isBundling
-                ? "Bundling..."
-                : bundleResult
-                  ? `${bundleResult.duration.toFixed(0)}ms`
-                  : "--ms"}
-            </span>
-          </div>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="outline" title="Reset to a preset">
-                <RotateCcw className="h-4 w-4" />
-                <span>Choose a preset</span>
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Reset Files</AlertDialogTitle>
-                <AlertDialogDescription>
-                  <span>
-                    This will reset all files to a preset. This action cannot be
-                    undone.
-                  </span>
-                  <Select
-                    value={selectedPreset}
-                    onValueChange={setSelectedPreset}
-                  >
-                    <SelectTrigger className="w-[180px] mt-4">
-                      <SelectValue placeholder="Select a preset" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>Preset</SelectLabel>
-                        {presets.map((preset) => (
-                          <SelectItem key={preset.name} value={preset.name}>
-                            {preset.name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleReset}>
-                  Reset
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleShare}
-            title="Share current configuration"
-          >
-            <Share2 className="h-4 w-4" />
-            <span>Share</span>
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={downloadProject}
-            title="Download project (Source + Dist)"
-          >
-            <Download className="h-4 w-4" />
-            <span>Download</span>
-          </Button>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-muted-foreground">Rspack Core</span>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" disabled={isBundling}>
-                  v{rspackVersion}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64">
-                {availableVersions.map((version) => (
-                  <DropdownMenuItem
-                    key={version}
-                    disabled={isBundling}
-                    onClick={() => {
-                      void handleVersionChange(version);
-                    }}
-                    className={rspackVersion === version ? "bg-accent" : ""}
-                  >
-                    v{version}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-          <Preview />
-
-          <ModeToggle />
-          <Button variant="ghost" size="icon" asChild>
-            <a
-              href="https://github.com/rspack-contrib/rspack-playground"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="View on GitHub"
+        <div className="flex items-center">
+          <div className="flex items-center gap-2 pr-3">
+            <div className="flex items-center space-x-1.5 text-[13px] text-muted-foreground">
+              <Clock className="h-3.5 w-3.5" />
+              <span>
+                {isBundling
+                  ? "Bundling..."
+                  : bundleResult
+                    ? `${bundleResult.duration.toFixed(0)}ms`
+                    : "--ms"}
+              </span>
+            </div>
+            <Select
+              value={rspackVersion}
+              onValueChange={(version) => {
+                void handleVersionChange(version);
+              }}
+              disabled={isBundling}
             >
-              <Github className="h-4 w-4" />
-            </a>
-          </Button>
+              <SelectTrigger
+                size="sm"
+                className="h-7 min-w-[96px] border bg-background/80 px-2.5 text-xs shadow-none hover:bg-background"
+                title={`Switch Rspack Core version (current: v${rspackVersion})`}
+                aria-label={`Switch Rspack Core version, current v${rspackVersion}`}
+              >
+                <SelectValue placeholder="Rspack Core" />
+              </SelectTrigger>
+              <SelectContent className="max-h-64">
+                <SelectGroup>
+                  <SelectLabel>Rspack Core</SelectLabel>
+                  {availableVersions.map((version) => (
+                    <SelectItem key={version} value={version}>
+                      v{version}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="h-4 w-px bg-border" />
+          <div className="flex items-center gap-0.5 px-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={iconButtonClassName}
+              onClick={downloadProject}
+              title="Download project (Source + Dist)"
+              aria-label="Download project"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span className="sr-only">Download</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={iconButtonClassName}
+              onClick={handleShare}
+              title="Share current configuration"
+              aria-label="Share current configuration"
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              <span className="sr-only">Share</span>
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={iconButtonClassName}
+                  title="Reset to a preset"
+                  aria-label="Reset to a preset"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  <span className="sr-only">Choose a preset</span>
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reset Files</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    <span>
+                      This will reset all files to a preset. This action cannot
+                      be undone.
+                    </span>
+                    <Select
+                      value={selectedPreset}
+                      onValueChange={setSelectedPreset}
+                    >
+                      <SelectTrigger className="w-[180px] mt-4">
+                        <SelectValue placeholder="Select a preset" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Preset</SelectLabel>
+                          {presets.map((preset) => (
+                            <SelectItem key={preset.name} value={preset.name}>
+                              {preset.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleReset}>
+                    Reset
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <Preview />
+          </div>
+          <div className="h-4 w-px bg-border" />
+          <div className="flex items-center gap-0.5 pl-3">
+            <ModeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              className={iconButtonClassName}
+              asChild
+            >
+              <a
+                href="https://github.com/rspack-contrib/rspack-playground"
+                target="_blank"
+                rel="noopener noreferrer"
+                title="View on GitHub"
+                aria-label="View on GitHub"
+              >
+                <Github className="h-3.5 w-3.5" />
+                <span className="sr-only">GitHub</span>
+              </a>
+            </Button>
+          </div>
         </div>
       </div>
     </header>
