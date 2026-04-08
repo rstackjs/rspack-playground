@@ -70,21 +70,21 @@ export default function FileTabs({
 
   return (
     <>
-      <div className="flex items-center border-b bg-muted/50">
+      <div className="flex h-9 items-center border-b bg-muted/50">
         <div className="flex flex-1 overflow-x-auto scrollbar-thin">
           {files.map((file, index) => (
             <div
               key={file.filename}
               data-filename={file.filename}
               className={cn(
-                "group flex items-center space-x-2 px-3 py-2 border-r cursor-pointer hover:bg-accent/50 transition-colors flex-shrink-0",
+                "group flex h-9 flex-shrink-0 items-center space-x-1.5 border-r px-3 text-sm cursor-pointer hover:bg-accent/50 transition-colors",
                 activeIndex === index &&
                   "bg-background border-b-2 border-b-primary",
               )}
               onClick={() => onFileSelect(index)}
             >
               <span
-                className="text-sm truncate flex-1 min-w-0"
+                className="min-w-0 flex-1 truncate"
                 onDoubleClick={() => handleStartEdit(index, file.filename)}
               >
                 {file.filename}
@@ -94,22 +94,22 @@ export default function FileTabs({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleStartEdit(index, file.filename);
                     }}
                   >
-                    <Edit2 className="h-3 w-3" />
+                    <Edit2 className="size-3" />
                   </Button>
                   {files.length > 1 && (
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/20"
+                      className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/20"
                       onClick={(e) => handleDeleteFile(e, index)}
                     >
-                      <X className="h-3 w-3" />
+                      <X className="size-3" />
                     </Button>
                   )}
                 </>
@@ -119,15 +119,15 @@ export default function FileTabs({
         </div>
 
         {!readonly && (
-          <div className="flex items-center px-2">
+          <div className="flex items-center px-1.5">
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="size-6"
               onClick={() => setShowCreateDialog(true)}
               title="New file"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="size-3.5" />
             </Button>
           </div>
         )}

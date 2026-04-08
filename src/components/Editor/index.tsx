@@ -51,9 +51,6 @@ function InputPanel({
   return (
     <Panel id="input" defaultSize={50} minSize={20} className="min-h-0">
       <div ref={panelRef} className="flex flex-col h-full">
-        <div className="flex items-center justify-between p-2 border-b bg-muted/30">
-          <span className="text-sm font-medium">Input Files</span>
-        </div>
         <div className="flex-1 min-h-0">
           <CodeEditor
             files={inputFiles}
