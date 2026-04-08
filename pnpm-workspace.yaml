@@ -4,6 +4,7 @@ packages:
 
 ignoredBuiltDependencies:
   - "@tailwindcss/oxide"
+  - simple-git-hooks
 
 patchedDependencies:
   "@rspack/browser": patches/@rspack__browser.patch

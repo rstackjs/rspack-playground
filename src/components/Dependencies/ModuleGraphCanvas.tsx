@@ -66,6 +66,7 @@ function inferCategory(name: string, fallback?: RspackModuleCategory) {
   if (fallback) return fallback;
   const normalized = normalizeGraphText(name);
   if (!normalized) return "runtime";
+
   if (normalized.includes("node_modules")) return "dependency";
   return "source";
 }
