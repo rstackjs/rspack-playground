@@ -115,14 +115,7 @@ const types = {
   "application/oebps-package+xml": ["opf"],
   "application/ogg": ["ogx"],
   "application/omdoc+xml": ["omdoc"],
-  "application/onenote": [
-    "onetoc",
-    "onetoc2",
-    "onetmp",
-    "onepkg",
-    "one",
-    "onea",
-  ],
+  "application/onenote": ["onetoc", "onetoc2", "onetmp", "onepkg", "one", "onea"],
   "application/oxps": ["oxps"],
   "application/p2p-overlay+xml": ["relo"],
   "application/patch-ops-error+xml": ["xer"],
@@ -365,21 +358,10 @@ const types = {
 Object.freeze(types);
 const standard = types;
 var __classPrivateFieldGet = (receiver, state, kind, f) => {
-  if ("a" === kind && !f)
-    throw new TypeError("Private accessor was defined without a getter");
-  if (
-    "function" == typeof state ? receiver !== state || !f : !state.has(receiver)
-  )
-    throw new TypeError(
-      "Cannot read private member from an object whose class did not declare it",
-    );
-  return "m" === kind
-    ? f
-    : "a" === kind
-      ? f.call(receiver)
-      : f
-        ? f.value
-        : state.get(receiver);
+  if ("a" === kind && !f) throw new TypeError("Private accessor was defined without a getter");
+  if ("function" == typeof state ? receiver !== state || !f : !state.has(receiver))
+    throw new TypeError("Cannot read private member from an object whose class did not declare it");
+  return "m" === kind ? f : "a" === kind ? f.call(receiver) : f ? f.value : state.get(receiver);
 };
 var _Mime_extensionToType, _Mime_typeToExtension, _Mime_typeToExtensions;
 class Mime {
@@ -394,40 +376,22 @@ class Mime {
       type = type.toLowerCase();
       extensions = extensions.map((ext) => ext.toLowerCase());
       if (!__classPrivateFieldGet(this, _Mime_typeToExtensions, "f").has(type))
-        __classPrivateFieldGet(this, _Mime_typeToExtensions, "f").set(
-          type,
-          new Set(),
-        );
-      const allExtensions = __classPrivateFieldGet(
-        this,
-        _Mime_typeToExtensions,
-        "f",
-      ).get(type);
+        __classPrivateFieldGet(this, _Mime_typeToExtensions, "f").set(type, new Set());
+      const allExtensions = __classPrivateFieldGet(this, _Mime_typeToExtensions, "f").get(type);
       let first = true;
       for (let extension of extensions) {
         const starred = extension.startsWith("*");
         extension = starred ? extension.slice(1) : extension;
         allExtensions?.add(extension);
-        if (first)
-          __classPrivateFieldGet(this, _Mime_typeToExtension, "f").set(
-            type,
-            extension,
-          );
+        if (first) __classPrivateFieldGet(this, _Mime_typeToExtension, "f").set(type, extension);
         first = false;
         if (starred) continue;
-        const currentType = __classPrivateFieldGet(
-          this,
-          _Mime_extensionToType,
-          "f",
-        ).get(extension);
+        const currentType = __classPrivateFieldGet(this, _Mime_extensionToType, "f").get(extension);
         if (currentType && currentType != type && !force)
           throw new Error(
             `"${type} -> ${extension}" conflicts with "${currentType} -> ${extension}". Pass \`force=true\` to override this definition.`,
           );
-        __classPrivateFieldGet(this, _Mime_extensionToType, "f").set(
-          extension,
-          type,
-        );
+        __classPrivateFieldGet(this, _Mime_extensionToType, "f").set(extension, type);
       }
     }
     return this;
@@ -439,27 +403,21 @@ class Mime {
     const hasPath = last.length < path.length;
     const hasDot = ext.length < last.length - 1;
     if (!hasDot && hasPath) return null;
-    return (
-      __classPrivateFieldGet(this, _Mime_extensionToType, "f").get(ext) ?? null
-    );
+    return __classPrivateFieldGet(this, _Mime_extensionToType, "f").get(ext) ?? null;
   }
   getExtension(type) {
     if ("string" != typeof type) return null;
     type = type?.split?.(";")[0];
     return (
       (type &&
-        __classPrivateFieldGet(this, _Mime_typeToExtension, "f").get(
-          type.trim().toLowerCase(),
-        )) ??
+        __classPrivateFieldGet(this, _Mime_typeToExtension, "f").get(type.trim().toLowerCase())) ??
       null
     );
   }
   getAllExtensions(type) {
     if ("string" != typeof type) return null;
     return (
-      __classPrivateFieldGet(this, _Mime_typeToExtensions, "f").get(
-        type.toLowerCase(),
-      ) ?? null
+      __classPrivateFieldGet(this, _Mime_typeToExtensions, "f").get(type.toLowerCase()) ?? null
     );
   }
   _freeze() {
@@ -469,11 +427,7 @@ class Mime {
       );
     };
     Object.freeze(this);
-    for (const extensions of __classPrivateFieldGet(
-      this,
-      _Mime_typeToExtensions,
-      "f",
-    ).values())
+    for (const extensions of __classPrivateFieldGet(this, _Mime_typeToExtensions, "f").values())
       Object.freeze(extensions);
     return this;
   }
@@ -484,9 +438,9 @@ class Mime {
     };
   }
 }
-(_Mime_extensionToType = new WeakMap()),
+((_Mime_extensionToType = new WeakMap()),
   (_Mime_typeToExtension = new WeakMap()),
-  (_Mime_typeToExtensions = new WeakMap());
+  (_Mime_typeToExtensions = new WeakMap()));
 const src_Mime = Mime;
 const index_lite = new src_Mime(standard)._freeze();
 const _self = self;
@@ -512,12 +466,8 @@ _self.addEventListener("fetch", (event) => {
       await initPromise;
       const requestUrl = new URL(event.request.url);
       if (requestUrl.pathname.startsWith(scope)) {
-        const filename = requestUrl.pathname
-          .replace(scope, "")
-          .replace(/^\//, "");
-        const file = files.find(
-          (f) => f.filename === filename || f.filename === `/${filename}`,
-        );
+        const filename = requestUrl.pathname.replace(scope, "").replace(/^\//, "");
+        const file = files.find((f) => f.filename === filename || f.filename === `/${filename}`);
         if (file) {
           const contentType = index_lite.getType(file.filename) || "text/plain";
           return new Response(file.text, {

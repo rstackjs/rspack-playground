@@ -1,11 +1,6 @@
-import type {
-  PointerEvent as ReactPointerEvent,
-} from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type {
-  RspackChunkGroupInfo,
-  RspackChunkInfo,
-} from "@/lib/bundle/dependency";
+import type { RspackChunkGroupInfo, RspackChunkInfo } from "@/lib/bundle/dependency";
 import { cn } from "@/lib/utils";
 import {
   buildCurvedPath,
@@ -182,9 +177,7 @@ function buildLayout(
 
   while (remaining.size > 0) {
     const start =
-      focusGroupId && remaining.has(focusGroupId)
-        ? focusGroupId
-        : remaining.values().next().value;
+      focusGroupId && remaining.has(focusGroupId) ? focusGroupId : remaining.values().next().value;
     if (!start) break;
 
     const queue = [start];
@@ -223,17 +216,15 @@ function buildLayout(
     const root =
       (focusGroupId && component.includes(focusGroupId)
         ? focusGroupId
-        : component
-            .slice()
-            .sort((left, right) => {
-              const leftNode = nodeById.get(left)!;
-              const rightNode = nodeById.get(right)!;
-              return (
-                Number(rightNode.initial) - Number(leftNode.initial) ||
-                rightNode.children.length - leftNode.children.length ||
-                leftNode.name.localeCompare(rightNode.name)
-              );
-            })[0]) ?? component[0];
+        : component.slice().sort((left, right) => {
+            const leftNode = nodeById.get(left)!;
+            const rightNode = nodeById.get(right)!;
+            return (
+              Number(rightNode.initial) - Number(leftNode.initial) ||
+              rightNode.children.length - leftNode.children.length ||
+              leftNode.name.localeCompare(rightNode.name)
+            );
+          })[0]) ?? component[0];
 
     const levels = new Map<string, number>();
 
@@ -325,17 +316,14 @@ function buildLayout(
 
         if (candidates.length === 0) continue;
 
-        candidates.sort(
-          (left, right) => Math.abs(left) - Math.abs(right) || left - right,
-        );
+        candidates.sort((left, right) => Math.abs(left) - Math.abs(right) || left - right);
         levels.set(id, candidates[0]!);
         progress = true;
       }
     }
 
     const unresolved = component.filter((id) => !levels.has(id));
-    const currentMaxLevel =
-      levels.size > 0 ? Math.max(...Array.from(levels.values())) : 0;
+    const currentMaxLevel = levels.size > 0 ? Math.max(...Array.from(levels.values())) : 0;
     unresolved.forEach((id, index) => {
       levels.set(id, currentMaxLevel + index + 1);
     });
@@ -419,18 +407,12 @@ export default function ChunkGraphCanvas({
   const viewRef = useRef<ViewState>({ panX: 0, panY: 0, scale: 1 });
   const dragRef = useRef<DragState | null>(null);
 
-  const graph = useMemo(
-    () => buildGraph(chunkGroups, chunks),
-    [chunkGroups, chunks],
-  );
+  const graph = useMemo(() => buildGraph(chunkGroups, chunks), [chunkGroups, chunks]);
   const layout = useMemo(
     () => buildLayout(graph.nodes, graph.edges, focusGroupId),
     [focusGroupId, graph.edges, graph.nodes],
   );
-  const chunkById = useMemo(
-    () => new Map(chunks.map((chunk) => [chunk.id, chunk])),
-    [chunks],
-  );
+  const chunkById = useMemo(() => new Map(chunks.map((chunk) => [chunk.id, chunk])), [chunks]);
   const [view, setView] = useState<ViewState>({
     panX: 0,
     panY: 0,
@@ -520,9 +502,7 @@ export default function ChunkGraphCanvas({
     if (!point) return;
 
     const current = viewRef.current;
-    const nextScale = clampScale(
-      current.scale * (deltaY < 0 ? 1.1 : 0.9),
-    );
+    const nextScale = clampScale(current.scale * (deltaY < 0 ? 1.1 : 0.9));
     const worldPoint = {
       x: (point.x - current.panX) / current.scale,
       y: (point.y - current.panY) / current.scale,
@@ -560,21 +540,13 @@ export default function ChunkGraphCanvas({
 
     return () => {
       svg.removeEventListener("wheel", handleWheel);
-      svg.removeEventListener(
-        "gesturestart",
-        preventGestureDefault as EventListener,
-      );
-      svg.removeEventListener(
-        "gesturechange",
-        preventGestureDefault as EventListener,
-      );
+      svg.removeEventListener("gesturestart", preventGestureDefault as EventListener);
+      svg.removeEventListener("gesturechange", preventGestureDefault as EventListener);
       svg.removeEventListener("gestureend", preventGestureDefault as EventListener);
     };
   }, [handleZoom]);
 
-  const handleCanvasPointerDown = (
-    event: ReactPointerEvent<SVGRectElement | SVGSVGElement>,
-  ) => {
+  const handleCanvasPointerDown = (event: ReactPointerEvent<SVGRectElement | SVGSVGElement>) => {
     if (event.button !== 0) return;
     const svg = svgRef.current;
     if (!svg) return;
@@ -592,10 +564,7 @@ export default function ChunkGraphCanvas({
     };
   };
 
-  const handleGroupPointerDown = (
-    event: ReactPointerEvent<SVGGElement>,
-    groupId: string,
-  ) => {
+  const handleGroupPointerDown = (event: ReactPointerEvent<SVGGElement>, groupId: string) => {
     if (event.button !== 0) return;
     event.stopPropagation();
 
@@ -682,12 +651,7 @@ export default function ChunkGraphCanvas({
           onPointerDown={handleCanvasPointerDown}
         >
           <defs>
-            <pattern
-              id="chunk-graph-grid"
-              width="32"
-              height="32"
-              patternUnits="userSpaceOnUse"
-            >
+            <pattern id="chunk-graph-grid" width="32" height="32" patternUnits="userSpaceOnUse">
               <path
                 d="M 32 0 L 0 0 0 32"
                 fill="none"
@@ -740,8 +704,7 @@ export default function ChunkGraphCanvas({
                 12,
               );
               const isCurrent =
-                currentGroupIdSet.has(edge.sourceId) ||
-                currentGroupIdSet.has(edge.targetId);
+                currentGroupIdSet.has(edge.sourceId) || currentGroupIdSet.has(edge.targetId);
 
               return (
                 <path

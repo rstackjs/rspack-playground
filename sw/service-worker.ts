@@ -40,12 +40,8 @@ _self.addEventListener("fetch", (event) => {
       await initPromise;
       const requestUrl = new URL(event.request.url);
       if (requestUrl.pathname.startsWith(scope)) {
-        const filename = requestUrl.pathname
-          .replace(scope, "")
-          .replace(/^\//, "");
-        const file = files.find(
-          (f) => f.filename === filename || f.filename === `/${filename}`,
-        );
+        const filename = requestUrl.pathname.replace(scope, "").replace(/^\//, "");
+        const file = files.find((f) => f.filename === filename || f.filename === `/${filename}`);
         if (file) {
           const contentType = mime.getType(file.filename) || "text/plain";
           return new Response(file.text, {

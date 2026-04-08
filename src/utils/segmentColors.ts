@@ -37,11 +37,7 @@ export function getColorForSegment(index: number): SegmentColor {
  * Generate a consistent color index from a segment's position.
  * This ensures the same segment always gets the same color.
  */
-export function getColorIndex(
-  source: string,
-  line: number,
-  column: number,
-): number {
+export function getColorIndex(source: string, line: number, column: number): number {
   // Simple hash combining source, line, and column
   let hash = 0;
   for (let i = 0; i < source.length; i++) {

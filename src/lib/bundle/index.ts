@@ -14,14 +14,8 @@ interface RspackBrowserRemoteEntryUrls {
 }
 
 const rspackModulePromises = new Map<string, Promise<RspackBrowserAPI>>();
-const rspackEntryPromises = new Map<
-  string,
-  Promise<RspackBrowserRemoteEntryUrls>
->();
-const rspackManifestPromises = new Map<
-  string,
-  Promise<RspackBrowserPackageManifest>
->();
+const rspackEntryPromises = new Map<string, Promise<RspackBrowserRemoteEntryUrls>>();
+const rspackManifestPromises = new Map<string, Promise<RspackBrowserPackageManifest>>();
 
 function createBundleFailure(errors: string[], duration = 0): BundleResult {
   return {
@@ -50,11 +44,7 @@ function getRspackBrowserFileUrl(version: string, filePath: string) {
   return `${getRspackBrowserBaseUrl(version)}/${filePath}`;
 }
 
-function getJsdelivrEsmUrl(
-  packageName: string,
-  version: string,
-  subpath?: string,
-) {
+function getJsdelivrEsmUrl(packageName: string, version: string, subpath?: string) {
   const suffix = subpath ? `/${subpath}` : "";
   return `https://cdn.jsdelivr.net/npm/${packageName}@${encodeURIComponent(version)}${suffix}/+esm`;
 }
@@ -62,9 +52,7 @@ function getJsdelivrEsmUrl(
 async function fetchRemoteText(url: string) {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(
-      `Failed to load ${url}: ${response.status} ${response.statusText}`,
-    );
+    throw new Error(`Failed to load ${url}: ${response.status} ${response.statusText}`);
   }
   return response.text();
 }
@@ -72,9 +60,7 @@ async function fetchRemoteText(url: string) {
 async function fetchRemoteJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(
-      `Failed to load ${url}: ${response.status} ${response.statusText}`,
-    );
+    throw new Error(`Failed to load ${url}: ${response.status} ${response.statusText}`);
   }
   return (await response.json()) as T;
 }
@@ -111,20 +97,14 @@ function replaceRequiredImportSource(
 }
 
 function hasImportSource(source: string, specifier: string) {
-  return new RegExp(`from\\s*["']${escapeRegExp(specifier)}["'];?`).test(
-    source,
-  );
+  return new RegExp(`from\\s*["']${escapeRegExp(specifier)}["'];?`).test(source);
 }
 
 function createBlobModuleUrl(source: string) {
-  return URL.createObjectURL(
-    new Blob([source], { type: "text/javascript;charset=utf-8" }),
-  );
+  return URL.createObjectURL(new Blob([source], { type: "text/javascript;charset=utf-8" }));
 }
 
-async function getRspackBrowserManifest(
-  version: string,
-): Promise<RspackBrowserPackageManifest> {
+async function getRspackBrowserManifest(version: string): Promise<RspackBrowserPackageManifest> {
   const cachedManifest = rspackManifestPromises.get(version);
   if (cachedManifest) {
     return cachedManifest;
@@ -143,9 +123,7 @@ async function getRspackBrowserManifest(
   }
 }
 
-async function getRspackBrowserEntryUrls(
-  version: string,
-): Promise<RspackBrowserRemoteEntryUrls> {
+async function getRspackBrowserEntryUrls(version: string): Promise<RspackBrowserRemoteEntryUrls> {
   const cachedEntry = rspackEntryPromises.get(version);
   if (cachedEntry) {
     return cachedEntry;
@@ -153,30 +131,17 @@ async function getRspackBrowserEntryUrls(
 
   const entryPromise = (async () => {
     const manifest = await getRspackBrowserManifest(version);
-    const liteTapableVersion =
-      manifest.dependencies?.["@rspack/lite-tapable"] ?? "";
-    const wasmRuntimeVersion =
-      manifest.dependencies?.["@napi-rs/wasm-runtime"] ?? "";
+    const liteTapableVersion = manifest.dependencies?.["@rspack/lite-tapable"] ?? "";
+    const wasmRuntimeVersion = manifest.dependencies?.["@napi-rs/wasm-runtime"] ?? "";
 
     if (!liteTapableVersion || !wasmRuntimeVersion) {
-      throw new Error(
-        `Rspack browser ${version} is missing published dependency metadata`,
-      );
+      throw new Error(`Rspack browser ${version} is missing published dependency metadata`);
     }
 
     const browserEntryUrl = getRspackBrowserFileUrl(version, "dist/index.js");
-    const browserRuntimeUrl = getRspackBrowserFileUrl(
-      version,
-      "dist/rslib-runtime.js",
-    );
-    const browserWasiUrl = getRspackBrowserFileUrl(
-      version,
-      "dist/rspack.wasi-browser.js",
-    );
-    const browserWorkerUrl = getRspackBrowserFileUrl(
-      version,
-      "dist/wasi-worker-browser.mjs",
-    );
+    const browserRuntimeUrl = getRspackBrowserFileUrl(version, "dist/rslib-runtime.js");
+    const browserWasiUrl = getRspackBrowserFileUrl(version, "dist/rspack.wasi-browser.js");
+    const browserWorkerUrl = getRspackBrowserFileUrl(version, "dist/wasi-worker-browser.mjs");
 
     const [entrySource, wasiSource, workerSource] = await Promise.all([
       fetchRemoteText(browserEntryUrl),
@@ -261,9 +226,7 @@ async function importRspackBrowser(version: string): Promise<RspackBrowserAPI> {
 
   const modulePromise = (async () => {
     const { entryModuleUrl } = await getRspackBrowserEntryUrls(version);
-    return import(
-      /* webpackIgnore: true */ entryModuleUrl
-    ) as Promise<RspackBrowserAPI>;
+    return import(/* webpackIgnore: true */ entryModuleUrl) as Promise<RspackBrowserAPI>;
   })();
   rspackModulePromises.set(version, modulePromise);
 
@@ -276,17 +239,12 @@ async function importRspackBrowser(version: string): Promise<RspackBrowserAPI> {
   }
 }
 
-async function loadConfig(
-  content: string,
-  rspackAPI: RspackBrowserAPI,
-): Promise<RspackOptions> {
+async function loadConfig(content: string, rspackAPI: RspackBrowserAPI): Promise<RspackOptions> {
   function requireRspack(name: string) {
     if (name === "@rspack/core" || name === "@rspack/browser") {
       return rspackAPI;
     }
-    throw new Error(
-      "Only support for importing '@rspack/core' or '@rspack/browser",
-    );
+    throw new Error("Only support for importing '@rspack/core' or '@rspack/browser");
   }
   const module: { exports: { default: RspackOptions } } = {
     exports: { default: {} },
@@ -302,10 +260,7 @@ async function loadConfig(
   return exports.default as RspackOptions;
 }
 
-export async function bundle(
-  files: SourceFile[],
-  version: string,
-): Promise<BundleResult> {
+export async function bundle(files: SourceFile[], version: string): Promise<BundleResult> {
   const rspackAPI = await importRspackBrowser(version);
   const { builtinMemFs, rspack } = rspackAPI;
 
@@ -341,10 +296,7 @@ export async function bundle(
       const output: SourceFile[] = [];
       const formattedOutput: SourceFile[] = [];
       const sourcemaps = new Map<string, string>();
-      const fileJSON = builtinMemFs.volume.toJSON() as Record<
-        string,
-        string | undefined
-      >;
+      const fileJSON = builtinMemFs.volume.toJSON() as Record<string, string | undefined>;
       for (const [filename, text] of Object.entries(fileJSON)) {
         if (!text) {
           continue;
@@ -359,12 +311,7 @@ export async function bundle(
           if (filenameWithoutPrefixSlash.endsWith(".map")) {
             // Map from the original JS filename to sourcemap content
             const jsFilename = filename.replace(/\.map$/, "");
-            console.log(
-              "[Sourcemap] Found sourcemap for:",
-              jsFilename,
-              "length:",
-              text.length,
-            );
+            console.log("[Sourcemap] Found sourcemap for:", jsFilename, "length:", text.length);
             sourcemaps.set(jsFilename, text);
           } else {
             output.push({ filename, text });
@@ -381,9 +328,7 @@ export async function bundle(
       const filenameComparator = (f1: string, f2: string) =>
         f1.length !== f2.length ? f1.length - f2.length : f1.localeCompare(f2);
       output.sort((a, b) => filenameComparator(a.filename, b.filename));
-      formattedOutput.sort((a, b) =>
-        filenameComparator(a.filename, b.filename),
-      );
+      formattedOutput.sort((a, b) => filenameComparator(a.filename, b.filename));
 
       const statsJson = stats?.toJson({
         all: false,

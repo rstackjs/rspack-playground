@@ -42,10 +42,7 @@ export function useSegmentDecorations({
     if (!enableSourcemap || !inputEditor || !outputEditor) {
       // Clear decorations when disabled
       if (inputEditor && inputDecorationsRef.current.length > 0) {
-        inputDecorationsRef.current = inputEditor.deltaDecorations(
-          inputDecorationsRef.current,
-          [],
-        );
+        inputDecorationsRef.current = inputEditor.deltaDecorations(inputDecorationsRef.current, []);
       }
       if (outputEditor && outputDecorationsRef.current.length > 0) {
         outputDecorationsRef.current = outputEditor.deltaDecorations(
@@ -197,8 +194,7 @@ export function useSegmentDecorations({
               // Look up color from the output mapping
               if (m.origLine !== null && m.origCol !== null) {
                 const key = getSegmentKey(sourceKey, m.origLine, m.origCol);
-                const colorIndex =
-                  segmentColorMap.get(key) ?? colorIndexCounter.current++;
+                const colorIndex = segmentColorMap.get(key) ?? colorIndexCounter.current++;
                 segmentColorMap.set(key, colorIndex);
 
                 inputDecorations.push({

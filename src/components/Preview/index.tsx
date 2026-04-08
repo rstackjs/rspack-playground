@@ -23,18 +23,15 @@ function PreviewFrame(props: PreviewFrameProps) {
   useEffect(() => {
     async function disposeServiceWorker() {
       const registrations = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(
-        registrations.map((registration) => registration.unregister()),
-      );
+      await Promise.all(registrations.map((registration) => registration.unregister()));
     }
 
     async function registerServiceWorker() {
       await disposeServiceWorker();
 
-      const registration = await navigator.serviceWorker.register(
-        "/preview/service-worker.js",
-        { scope: "/preview/" },
-      );
+      const registration = await navigator.serviceWorker.register("/preview/service-worker.js", {
+        scope: "/preview/",
+      });
 
       function init(sw: ServiceWorker) {
         sw.postMessage({
@@ -70,9 +67,7 @@ function PreviewFrame(props: PreviewFrameProps) {
     if (iframe?.contentWindow && entry?.filename) {
       const iframeWindow = iframe.contentWindow;
       registerServiceWorker().then(() => {
-        const name = entry.filename.startsWith("/")
-          ? entry.filename.slice(1)
-          : entry.filename;
+        const name = entry.filename.startsWith("/") ? entry.filename.slice(1) : entry.filename;
         iframeWindow.location = `/preview/${name}`;
       });
     }
@@ -82,13 +77,7 @@ function PreviewFrame(props: PreviewFrameProps) {
     };
   }, [files, entry]);
 
-  return (
-    <iframe
-      className="w-full h-full border-none"
-      src="/preview"
-      ref={iframeRef}
-    />
-  );
+  return <iframe className="w-full h-full border-none" src="/preview" ref={iframeRef} />;
 }
 
 function Preview() {
@@ -111,10 +100,7 @@ function Preview() {
           <span className="sr-only">Preview</span>
         </Button>
       </DialogTrigger>
-      <DialogContent
-        showCloseButton={false}
-        className="max-w-full! w-9/12! h-8/12!"
-      >
+      <DialogContent showCloseButton={false} className="max-w-full! w-9/12! h-8/12!">
         <DialogTitle className="hidden"></DialogTitle>
         <DialogDescription className="hidden"></DialogDescription>
         <PreviewFrame files={bundleResult?.output || []} />

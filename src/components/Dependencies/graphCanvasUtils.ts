@@ -24,27 +24,18 @@ export function trimGraphLabel(value: string, maxLength = 26) {
   return `${value.slice(0, maxLength - 1)}…`;
 }
 
-export function includesGraphText(
-  values: Array<string | undefined>,
-  query: string,
-) {
+export function includesGraphText(values: Array<string | undefined>, query: string) {
   const normalizedQuery = query.trim().toLowerCase();
   if (!normalizedQuery) return true;
 
-  return values.some((value) =>
-    (value || "").toLowerCase().includes(normalizedQuery),
-  );
+  return values.some((value) => (value || "").toLowerCase().includes(normalizedQuery));
 }
 
 export function clampScale(scale: number, min = 0.45, max = 2.4) {
   return Math.min(Math.max(scale, min), max);
 }
 
-export function getSvgPoint(
-  svg: SVGSVGElement,
-  clientX: number,
-  clientY: number,
-) {
+export function getSvgPoint(svg: SVGSVGElement, clientX: number, clientY: number) {
   const point = svg.createSVGPoint();
   point.x = clientX;
   point.y = clientY;

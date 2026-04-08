@@ -1,14 +1,7 @@
 import { useMonaco } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
 import type { ReactNode, RefObject } from "react";
-import {
-  useCallback,
-  useDeferredValue,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type {
   RspackChunkGroupInfo,
   RspackChunkInfo,
@@ -56,9 +49,7 @@ function matchesModulePath(a: string | undefined, b: string | undefined) {
   const right = normalizePath(b);
 
   if (!left || !right) return false;
-  return (
-    left === right || left.endsWith(`/${right}`) || right.endsWith(`/${left}`)
-  );
+  return left === right || left.endsWith(`/${right}`) || right.endsWith(`/${left}`);
 }
 
 function categoryLabel(category: RspackModuleCategory) {
@@ -91,10 +82,7 @@ function compareChunkInfo(a: RspackChunkInfo, b: RspackChunkInfo) {
   );
 }
 
-function compareChunkGroupInfo(
-  a: RspackChunkGroupInfo,
-  b: RspackChunkGroupInfo,
-) {
+function compareChunkGroupInfo(a: RspackChunkGroupInfo, b: RspackChunkGroupInfo) {
   return Number(b.initial) - Number(a.initial) || a.name.localeCompare(b.name);
 }
 
@@ -108,29 +96,18 @@ function compareChunkModuleRef(
     runtime: 2,
   } satisfies Record<RspackChunkInfo["modules"][number]["category"], number>;
 
-  return (
-    categoryOrder[a.category] - categoryOrder[b.category] ||
-    a.name.localeCompare(b.name)
-  );
+  return categoryOrder[a.category] - categoryOrder[b.category] || a.name.localeCompare(b.name);
 }
 
 function isChunkInfo(value: RspackChunkInfo | undefined): value is RspackChunkInfo {
   return Boolean(value);
 }
 
-function isChunkGroupInfo(
-  value: RspackChunkGroupInfo | undefined,
-): value is RspackChunkGroupInfo {
+function isChunkGroupInfo(value: RspackChunkGroupInfo | undefined): value is RspackChunkGroupInfo {
   return Boolean(value);
 }
 
-function Tag({
-  className,
-  children,
-}: {
-  className?: string;
-  children: ReactNode;
-}) {
+function Tag({ className, children }: { className?: string; children: ReactNode }) {
   return (
     <span
       className={cn(
@@ -156,9 +133,7 @@ function StatCard({
     <div className="rounded-md border bg-background/70 p-2">
       <div className="text-[11px] text-muted-foreground">{label}</div>
       <div className="mt-1 text-sm font-semibold">{value}</div>
-      {hint ? (
-        <div className="mt-1 text-[10px] text-muted-foreground">{hint}</div>
-      ) : null}
+      {hint ? <div className="mt-1 text-[10px] text-muted-foreground">{hint}</div> : null}
     </div>
   );
 }
@@ -175,16 +150,13 @@ export default function DependencyPanel({
   const [lines, setLines] = useState<LineInfo[]>([]);
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
-  const [collapsedSections, setCollapsedSections] = useState<
-    Record<string, boolean>
-  >({});
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
   const [viewMode, setViewMode] = useState<GraphView>("module");
   const [chunkSearch, setChunkSearch] = useState("");
   const deferredChunkSearch = useDeferredValue(chunkSearch);
   const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
   const [selectedChunkId, setSelectedChunkId] = useState<string | null>(null);
-  const decorationsRef =
-    useRef<Monaco.editor.IEditorDecorationsCollection | null>(null);
+  const decorationsRef = useRef<Monaco.editor.IEditorDecorationsCollection | null>(null);
   const styleIdsRef = useRef<Set<string>>(new Set());
 
   const activeFile = inputFiles[activeInputFile];
@@ -236,10 +208,7 @@ export default function DependencyPanel({
     inspectedModule && currentModule && inspectedModule.id === currentModule.id,
   );
 
-  const chunkById = useMemo(
-    () => new Map(chunks.map((chunk) => [chunk.id, chunk])),
-    [chunks],
-  );
+  const chunkById = useMemo(() => new Map(chunks.map((chunk) => [chunk.id, chunk])), [chunks]);
   const chunkGroupById = useMemo(
     () => new Map(chunkGroups.map((group) => [group.id, group])),
     [chunkGroups],
@@ -291,11 +260,7 @@ export default function DependencyPanel({
   const currentChunks = useMemo(() => {
     if (!inspectedModule) return [];
 
-    return getChunksForKeys([
-      inspectedModule.id,
-      inspectedModule.path,
-      inspectedModule.name,
-    ]);
+    return getChunksForKeys([inspectedModule.id, inspectedModule.path, inspectedModule.name]);
   }, [getChunksForKeys, inspectedModule]);
 
   const currentChunkIds = useMemo(
@@ -407,12 +372,7 @@ export default function DependencyPanel({
       if (!editor || !dep.loc || !monacoInstance) return;
 
       const { start, end } = dep.loc;
-      const range = new monacoInstance.Range(
-        start.line,
-        start.column,
-        end.line,
-        end.column,
-      );
+      const range = new monacoInstance.Range(start.line, start.column, end.line, end.column);
 
       const cssClass = `dep-highlight-${color.replace(/[^a-zA-Z0-9]/g, "")}`;
       const styleId = `dep-style-${cssClass}`;
@@ -462,9 +422,7 @@ export default function DependencyPanel({
       const inputPanel = editorDom.closest("[id='input']")?.parentElement;
       if (!inputPanel) return null;
 
-      const allTabs = Array.from(
-        inputPanel.querySelectorAll<HTMLElement>("[data-filename]"),
-      );
+      const allTabs = Array.from(inputPanel.querySelectorAll<HTMLElement>("[data-filename]"));
       let tabEl: HTMLElement | null = null;
       for (const tab of allTabs) {
         const filename = tab.getAttribute("data-filename") || "";
@@ -551,14 +509,7 @@ export default function DependencyPanel({
         setLines([line]);
       }
     },
-    [
-      drawLineToModule,
-      highlightRange,
-      isInspectingActiveFile,
-      showAll,
-      totalDeps,
-      viewMode,
-    ],
+    [drawLineToModule, highlightRange, isInspectingActiveFile, showAll, totalDeps, viewMode],
   );
 
   const handleDepLeave = useCallback(() => {
@@ -603,44 +554,35 @@ export default function DependencyPanel({
 
   useEffect(() => {
     const editor = inputEditorRef.current;
-    if (
-      !editor ||
-      !inspectedModule ||
-      !isInspectingActiveFile ||
-      viewMode !== "module"
-    ) {
+    if (!editor || !inspectedModule || !isInspectingActiveFile || viewMode !== "module") {
       return;
     }
 
-    const disposable = editor.onMouseMove(
-      (event: Monaco.editor.IEditorMouseEvent) => {
-        if (showAll || !event.target.position) return;
+    const disposable = editor.onMouseMove((event: Monaco.editor.IEditorMouseEvent) => {
+      if (showAll || !event.target.position) return;
 
-        const { lineNumber, column } = event.target.position;
-        let found = false;
+      const { lineNumber, column } = event.target.position;
+      let found = false;
 
-        for (const item of allDepItems) {
-          const { dep } = item;
-          if (!dep.loc) continue;
+      for (const item of allDepItems) {
+        const { dep } = item;
+        if (!dep.loc) continue;
 
-          const { start, end } = dep.loc;
-          if (
-            (lineNumber > start.line ||
-              (lineNumber === start.line && column >= start.column)) &&
-            (lineNumber < end.line ||
-              (lineNumber === end.line && column <= end.column + 1))
-          ) {
-            found = true;
-            handleDepHover(dep, item.colorIdx, item.key);
-            break;
-          }
+        const { start, end } = dep.loc;
+        if (
+          (lineNumber > start.line || (lineNumber === start.line && column >= start.column)) &&
+          (lineNumber < end.line || (lineNumber === end.line && column <= end.column + 1))
+        ) {
+          found = true;
+          handleDepHover(dep, item.colorIdx, item.key);
+          break;
         }
+      }
 
-        if (!found) {
-          handleDepLeave();
-        }
-      },
-    );
+      if (!found) {
+        handleDepLeave();
+      }
+    });
 
     const leaveDisposable = editor.onMouseLeave(() => {
       if (!showAll) {
@@ -664,9 +606,7 @@ export default function DependencyPanel({
   ]);
 
   const depItems = allDepItems.filter((item) => item.section === "dep");
-  const presentationalItems = allDepItems.filter(
-    (item) => item.section === "presentational",
-  );
+  const presentationalItems = allDepItems.filter((item) => item.section === "presentational");
   const blockItems = allDepItems.filter((item) => item.section === "block");
   const blockGroups = new Map<number, DepItem[]>();
   for (const item of blockItems) {
@@ -721,18 +661,12 @@ export default function DependencyPanel({
     if (viewMode !== "chunk") return;
     if (selectedChunkId && visibleChunkIds.has(selectedChunkId)) return;
 
-    const nextSelectedChunkId = visibleChunkIds.has(selectedChunkId ?? "")
-      ? selectedChunkId
-      : null;
+    const nextSelectedChunkId = visibleChunkIds.has(selectedChunkId ?? "") ? selectedChunkId : null;
 
     if (nextSelectedChunkId !== selectedChunkId) {
       setSelectedChunkId(nextSelectedChunkId);
     }
-  }, [
-    selectedChunkId,
-    viewMode,
-    visibleChunkIds,
-  ]);
+  }, [selectedChunkId, viewMode, visibleChunkIds]);
 
   const selectedChunk = useMemo(() => {
     if (!selectedChunkId) return null;
@@ -802,8 +736,7 @@ export default function DependencyPanel({
       relation?: "parent" | "child";
     } = {},
   ) => {
-    const prefix =
-      relation === "parent" ? "from " : relation === "child" ? "to " : "";
+    const prefix = relation === "parent" ? "from " : relation === "child" ? "to " : "";
 
     return (
       <Tag
@@ -828,9 +761,7 @@ export default function DependencyPanel({
       dep.targetModuleName,
       dep.targetModule,
     ]);
-    const isCrossChunk = targetChunks.some(
-      (chunk) => !currentChunkIds.has(chunk.id),
-    );
+    const isCrossChunk = targetChunks.some((chunk) => !currentChunkIds.has(chunk.id));
 
     return (
       <div
@@ -858,10 +789,7 @@ export default function DependencyPanel({
                 </Tag>
               ) : null}
             </div>
-            <div
-              className="mt-1 truncate text-xs font-medium"
-              style={{ color: depColor }}
-            >
+            <div className="mt-1 truncate text-xs font-medium" style={{ color: depColor }}>
               {dep.targetModuleName || dep.userRequest || "(unresolved target)"}
             </div>
             {dep.userRequest && dep.userRequest !== dep.targetModuleName ? (
@@ -903,9 +831,7 @@ export default function DependencyPanel({
           onClick={() => toggleSection(sectionKey)}
           className="flex w-full items-center gap-1 border-b border-border/50 bg-muted/40 px-3 py-1.5 text-left text-xs font-semibold text-muted-foreground hover:bg-muted/70"
         >
-          <span className="text-[10px]">
-            {collapsedSections[sectionKey] ? "\u25B6" : "\u25BC"}
-          </span>
+          <span className="text-[10px]">{collapsedSections[sectionKey] ? "\u25B6" : "\u25BC"}</span>
           {label} ({items.length})
         </button>
         {!collapsedSections[sectionKey] ? items.map(renderDepItem) : null}
@@ -956,25 +882,22 @@ export default function DependencyPanel({
 
         {!currentModule ? (
           <div className="border-b p-3 text-sm text-muted-foreground">
-            Current file is not part of the module graph. The graph above still
-            shows the bundled module relationships; click a graph node to inspect
-            its chunk placement and dependencies.
+            Current file is not part of the module graph. The graph above still shows the bundled
+            module relationships; click a graph node to inspect its chunk placement and
+            dependencies.
           </div>
         ) : null}
 
         {inspectedModule && !isInspectingActiveFile ? (
           <div className="border-b p-3 text-sm text-muted-foreground">
-            You are inspecting a graph-selected module. Source-range highlighting
-            and import hover sync only work when that module's file is active in
-            the editor.
+            You are inspecting a graph-selected module. Source-range highlighting and import hover
+            sync only work when that module's file is active in the editor.
           </div>
         ) : null}
 
         {inspectedModule && currentGroups.length > 0 ? (
           <div className="border-b p-3">
-            <div className="text-xs font-semibold text-muted-foreground">
-              Module chunk groups
-            </div>
+            <div className="text-xs font-semibold text-muted-foreground">Module chunk groups</div>
             <div className="mt-2 flex flex-wrap gap-1">
               {currentGroups.map((group) =>
                 renderGroupBadge(group, {
@@ -988,11 +911,7 @@ export default function DependencyPanel({
         {inspectedModule ? (
           <div>
             {renderSection("dependencies", "dep", depItems)}
-            {renderSection(
-              "presentationalDependencies",
-              "presentational",
-              presentationalItems,
-            )}
+            {renderSection("presentationalDependencies", "presentational", presentationalItems)}
             {blockGroups.size > 0 ? (
               <>
                 <button
@@ -1056,20 +975,14 @@ export default function DependencyPanel({
             <div className="rounded-lg border bg-background/70 p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <div className="truncate text-sm font-medium">
-                    {selectedChunk.name}
-                  </div>
+                  <div className="truncate text-sm font-medium">{selectedChunk.name}</div>
                   <div className="mt-1 truncate text-[11px] text-muted-foreground">
                     {selectedChunk.files.join(", ") || selectedChunk.id}
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-1">
-                  {selectedChunk.entry ? (
-                    <Tag className="bg-muted">entry chunk</Tag>
-                  ) : null}
-                  {selectedChunk.initial ? (
-                    <Tag className="bg-muted">initial</Tag>
-                  ) : null}
+                  {selectedChunk.entry ? <Tag className="bg-muted">entry chunk</Tag> : null}
+                  {selectedChunk.initial ? <Tag className="bg-muted">initial</Tag> : null}
                 </div>
               </div>
 
@@ -1085,9 +998,7 @@ export default function DependencyPanel({
                     Member groups
                   </div>
                   <div className="mt-1 flex flex-wrap gap-1">
-                    {selectedChunkGroups.map((group) =>
-                      renderGroupBadge(group),
-                    )}
+                    {selectedChunkGroups.map((group) => renderGroupBadge(group))}
                   </div>
                 </div>
               ) : null}
@@ -1124,10 +1035,7 @@ export default function DependencyPanel({
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div className="text-xs font-semibold text-muted-foreground">
                     Chunk modules ({filteredSelectedChunkModules.length}
-                    {chunkSearchQuery
-                      ? ` / ${selectedChunk.modules.length} matched`
-                      : ""}
-                    )
+                    {chunkSearchQuery ? ` / ${selectedChunk.modules.length} matched` : ""})
                   </div>
                   <input
                     type="search"
@@ -1142,9 +1050,9 @@ export default function DependencyPanel({
                 filteredSelectedChunkModules.map((module) => {
                   const isCurrentModule = Boolean(
                     currentModule &&
-                      (module.id === currentModule.id ||
-                        matchesModulePath(module.name, currentModule.name) ||
-                        matchesModulePath(module.path, currentModule.path)),
+                    (module.id === currentModule.id ||
+                      matchesModulePath(module.name, currentModule.name) ||
+                      matchesModulePath(module.path, currentModule.path)),
                   );
 
                   return (
@@ -1161,9 +1069,7 @@ export default function DependencyPanel({
                               </Tag>
                             ) : null}
                           </div>
-                          <div className="mt-1 truncate text-xs font-medium">
-                            {module.name}
-                          </div>
+                          <div className="mt-1 truncate text-xs font-medium">{module.name}</div>
                           {module.path && module.path !== module.name ? (
                             <div className="mt-1 truncate text-[11px] text-muted-foreground">
                               {module.path}
@@ -1195,8 +1101,7 @@ export default function DependencyPanel({
             <div>
               <div className="text-sm font-medium">Graph Explorer</div>
               <div className="text-[11px] text-muted-foreground">
-                {modules.length} modules · {chunks.length} chunks ·{" "}
-                {chunkGroups.length} groups
+                {modules.length} modules · {chunks.length} chunks · {chunkGroups.length} groups
                 {currentModule ? ` · active: ${currentModule.name}` : ""}
               </div>
             </div>

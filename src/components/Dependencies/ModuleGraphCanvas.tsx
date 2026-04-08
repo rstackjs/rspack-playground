@@ -1,6 +1,4 @@
-import type {
-  PointerEvent as ReactPointerEvent,
-} from "react";
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   RspackDependency,
@@ -88,10 +86,7 @@ function collectDependencies(module: RspackModuleDeps) {
   ];
 }
 
-function isDynamicImportEdge(
-  _dep: RspackDependency,
-  kind: GraphEdge["kind"],
-) {
+function isDynamicImportEdge(_dep: RspackDependency, kind: GraphEdge["kind"]) {
   return kind === "block";
 }
 
@@ -110,9 +105,7 @@ function categoryClassName(category: RspackModuleCategory, isActive: boolean) {
   }
 }
 
-function buildGraph(
-  modules: RspackModuleDeps[],
-): { nodes: GraphNode[]; edges: GraphEdge[] } {
+function buildGraph(modules: RspackModuleDeps[]): { nodes: GraphNode[]; edges: GraphEdge[] } {
   const nodes = new Map<string, GraphNode>();
   const aliases = new Map<string, string>();
 
@@ -284,15 +277,10 @@ function buildLayout(
   }
 
   components.sort((left, right) => {
-    const leftHasCurrent =
-      currentModuleId ? left.includes(currentModuleId) : false;
-    const rightHasCurrent =
-      currentModuleId ? right.includes(currentModuleId) : false;
+    const leftHasCurrent = currentModuleId ? left.includes(currentModuleId) : false;
+    const rightHasCurrent = currentModuleId ? right.includes(currentModuleId) : false;
 
-    return (
-      Number(rightHasCurrent) - Number(leftHasCurrent) ||
-      right.length - left.length
-    );
+    return Number(rightHasCurrent) - Number(leftHasCurrent) || right.length - left.length;
   });
 
   const positions: Record<string, Point> = {};
@@ -311,8 +299,7 @@ function buildLayout(
 
             return (
               rightScore - leftScore ||
-              Number(rightNode.category === "source") -
-                Number(leftNode.category === "source") ||
+              Number(rightNode.category === "source") - Number(leftNode.category === "source") ||
               leftNode.name.localeCompare(rightNode.name)
             );
           })[0]) ?? component[0];
@@ -384,9 +371,7 @@ function buildLayout(
 
           if (candidates.length === 0) continue;
 
-          candidates.sort(
-            (left, right) => Math.abs(left) - Math.abs(right) || left - right,
-          );
+          candidates.sort((left, right) => Math.abs(left) - Math.abs(right) || left - right);
           levels.set(id, candidates[0]!);
           progress = true;
         }
@@ -409,8 +394,7 @@ function buildLayout(
     }
 
     const unresolved = component.filter((id) => !levels.has(id));
-    const currentMaxLevel =
-      levels.size > 0 ? Math.max(...Array.from(levels.values())) : 0;
+    const currentMaxLevel = levels.size > 0 ? Math.max(...Array.from(levels.values())) : 0;
     for (const [index, id] of unresolved.entries()) {
       levels.set(id, currentMaxLevel + 1 + index);
     }
@@ -430,8 +414,7 @@ function buildLayout(
         const leftNode = nodeById.get(left)!;
         const rightNode = nodeById.get(right)!;
         return (
-          Number(rightNode.category === "source") -
-            Number(leftNode.category === "source") ||
+          Number(rightNode.category === "source") - Number(leftNode.category === "source") ||
           rightNode.outDegree - leftNode.outDegree ||
           leftNode.name.localeCompare(rightNode.name)
         );
@@ -439,7 +422,7 @@ function buildLayout(
     }
 
     const columnHeight = Math.max(
-      ...sortedLevels.map((level) => (columns.get(level)?.length ?? 0)),
+      ...sortedLevels.map((level) => columns.get(level)?.length ?? 0),
       1,
     );
     const componentHeight = Math.max(columnHeight * 110, 220);
@@ -508,10 +491,7 @@ export default function ModuleGraphCanvas({
 
   useEffect(() => {
     setLayoutAnchorId((previousAnchorId) => {
-      if (
-        previousAnchorId &&
-        graph.nodes.some((node) => node.id === previousAnchorId)
-      ) {
+      if (previousAnchorId && graph.nodes.some((node) => node.id === previousAnchorId)) {
         return previousAnchorId;
       }
 
@@ -524,9 +504,7 @@ export default function ModuleGraphCanvas({
   }, [view]);
 
   useEffect(() => {
-    setSelectedNodeId(
-      selectedModuleId ?? currentModuleId ?? graph.nodes[0]?.id ?? null,
-    );
+    setSelectedNodeId(selectedModuleId ?? currentModuleId ?? graph.nodes[0]?.id ?? null);
   }, [currentModuleId, graph.nodes, selectedModuleId]);
 
   useEffect(() => {
@@ -606,9 +584,7 @@ export default function ModuleGraphCanvas({
     if (!point) return;
 
     const current = viewRef.current;
-    const nextScale = clampScale(
-      current.scale * (deltaY < 0 ? 1.1 : 0.9),
-    );
+    const nextScale = clampScale(current.scale * (deltaY < 0 ? 1.1 : 0.9));
     const worldPoint = {
       x: (point.x - current.panX) / current.scale,
       y: (point.y - current.panY) / current.scale,
@@ -646,21 +622,13 @@ export default function ModuleGraphCanvas({
 
     return () => {
       svg.removeEventListener("wheel", handleWheel);
-      svg.removeEventListener(
-        "gesturestart",
-        preventGestureDefault as EventListener,
-      );
-      svg.removeEventListener(
-        "gesturechange",
-        preventGestureDefault as EventListener,
-      );
+      svg.removeEventListener("gesturestart", preventGestureDefault as EventListener);
+      svg.removeEventListener("gesturechange", preventGestureDefault as EventListener);
       svg.removeEventListener("gestureend", preventGestureDefault as EventListener);
     };
   }, [handleZoom]);
 
-  const handleCanvasPointerDown = (
-    event: ReactPointerEvent<SVGRectElement | SVGSVGElement>,
-  ) => {
+  const handleCanvasPointerDown = (event: ReactPointerEvent<SVGRectElement | SVGSVGElement>) => {
     if (event.button !== 0) return;
     const svg = svgRef.current;
     if (!svg) return;
@@ -678,10 +646,7 @@ export default function ModuleGraphCanvas({
     };
   };
 
-  const handleNodePointerDown = (
-    event: ReactPointerEvent<SVGGElement>,
-    nodeId: string,
-  ) => {
+  const handleNodePointerDown = (event: ReactPointerEvent<SVGGElement>, nodeId: string) => {
     if (event.button !== 0) return;
     event.stopPropagation();
 
@@ -773,12 +738,7 @@ export default function ModuleGraphCanvas({
           onPointerDown={handleCanvasPointerDown}
         >
           <defs>
-            <pattern
-              id="module-graph-grid"
-              width="32"
-              height="32"
-              patternUnits="userSpaceOnUse"
-            >
+            <pattern id="module-graph-grid" width="32" height="32" patternUnits="userSpaceOnUse">
               <path
                 d="M 32 0 L 0 0 0 32"
                 fill="none"

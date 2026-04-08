@@ -8,10 +8,7 @@ import zlib from "node:zlib";
 import { promisify } from "node:util";
 
 export default defineConfig({
-  plugins: [
-    pluginReact(),
-    WasmGzipPlugin(),
-  ],
+  plugins: [pluginReact(), WasmGzipPlugin()],
   html: {
     title: "Rspack Playground",
     favicon: "./public/favicon-128x128.png",
@@ -61,5 +58,5 @@ function WasmGzipPlugin(): RsbuildPlugin {
         }
       });
     },
-  }
+  };
 }

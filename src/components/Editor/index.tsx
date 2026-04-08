@@ -22,11 +22,7 @@ import {
   enableFormatCode,
   inputFilesAtom,
 } from "@/store/bundler";
-import {
-  activeInputFileAtom,
-  activeOutputFileAtom,
-  enableDependenciesAtom,
-} from "@/store/editor";
+import { activeInputFileAtom, activeOutputFileAtom, enableDependenciesAtom } from "@/store/editor";
 
 interface InputPanelProps {
   inputFiles: SourceFile[];
@@ -145,18 +141,14 @@ function OutputPanel({
               <span className="text-sm font-normal">Dependencies</span>
               <Checkbox
                 checked={enableDependencies}
-                onCheckedChange={(checked) =>
-                  setEnableDependencies(Boolean(checked))
-                }
+                onCheckedChange={(checked) => setEnableDependencies(Boolean(checked))}
               />
             </Label>
             <Label className="justify-between">
               <span className="text-sm font-normal">Sourcemap</span>
               <Checkbox
                 checked={enableSourcemap}
-                onCheckedChange={(checked) =>
-                  setEnableSourcemap(Boolean(checked))
-                }
+                onCheckedChange={(checked) => setEnableSourcemap(Boolean(checked))}
               />
             </Label>
             <Label className="justify-between">
@@ -170,9 +162,7 @@ function OutputPanel({
             {enableSourcemap && (
               <div className="flex items-start gap-2 rounded-md bg-muted/50 px-2 py-1.5 text-xs text-muted-foreground">
                 <Check className="mt-0.5 size-3 shrink-0" />
-                <span>
-                  Format output is unavailable while sourcemap is enabled.
-                </span>
+                <span>Format output is unavailable while sourcemap is enabled.</span>
               </div>
             )}
           </div>
@@ -186,11 +176,7 @@ function OutputPanel({
       <div ref={panelRef} className="flex flex-col h-full relative">
         <div className="flex-1 min-h-0">
           {bundleResult ? (
-            <PanelGroup
-              id="output-group"
-              direction="vertical"
-              className="h-full"
-            >
+            <PanelGroup id="output-group" direction="vertical" className="h-full">
               <Panel id="output-editor" order={0}>
                 <CodeEditor
                   files={
@@ -205,16 +191,10 @@ function OutputPanel({
                   onEditorMount={onEditorMount}
                 />
               </Panel>
-              {(bundleResult.errors.length > 0 ||
-                bundleResult.warnings.length > 0) && (
+              {(bundleResult.errors.length > 0 || bundleResult.warnings.length > 0) && (
                 <>
                   <PanelResizeHandle className="h-1 bg-border hover:bg-border/80" />
-                  <Panel
-                    id="output-errors"
-                    order={1}
-                    minSize={0}
-                    maxSize={33.33}
-                  >
+                  <Panel id="output-errors" order={1} minSize={0} maxSize={33.33}>
                     <pre className="p-2 h-full overflow-y-auto text-wrap">
                       {bundleResult.errors.map((err) => (
                         <div key={err} className="text-red-500">
@@ -235,9 +215,7 @@ function OutputPanel({
             <div className="flex items-center justify-center h-full text-muted-foreground">
               <div className="text-center">
                 <div className="text-lg mb-2">No output yet</div>
-                <div className="text-sm">
-                  Modify your code to see the bundled result
-                </div>
+                <div className="text-sm">Modify your code to see the bundled result</div>
               </div>
             </div>
           )}
@@ -246,9 +224,7 @@ function OutputPanel({
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
             <div className="flex flex-col items-center gap-3">
               <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-              <div className="text-sm text-muted-foreground font-medium">
-                Loading Binding...
-              </div>
+              <div className="text-sm text-muted-foreground font-medium">Loading Binding...</div>
             </div>
           </div>
         )}
@@ -269,12 +245,8 @@ function Editor() {
   const isMobile = useIsMobile();
 
   // Refs for sourcemap overlay
-  const inputEditorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(
-    null,
-  );
-  const outputEditorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(
-    null,
-  );
+  const inputEditorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
+  const outputEditorRef = useRef<Monaco.editor.IStandaloneCodeEditor | null>(null);
   const inputPanelRef = useRef<HTMLDivElement | null>(null);
   const outputPanelRef = useRef<HTMLDivElement | null>(null);
 
@@ -298,10 +270,7 @@ function Editor() {
     activeOutputIndex: activeOutputFile,
   });
 
-  const debouncedHandleBundle = useMemo(
-    () => debounce(handleBundle, 300),
-    [handleBundle],
-  );
+  const debouncedHandleBundle = useMemo(() => debounce(handleBundle, 300), [handleBundle]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: initialize bundle on mount
   useEffect(() => {
@@ -347,26 +316,18 @@ function Editor() {
     setInputFiles(newFiles);
   };
 
-  const handleInputEditorMount = useCallback(
-    (editor: Monaco.editor.IStandaloneCodeEditor) => {
-      inputEditorRef.current = editor;
-    },
-    [],
-  );
+  const handleInputEditorMount = useCallback((editor: Monaco.editor.IStandaloneCodeEditor) => {
+    inputEditorRef.current = editor;
+  }, []);
 
-  const handleOutputEditorMount = useCallback(
-    (editor: Monaco.editor.IStandaloneCodeEditor) => {
-      outputEditorRef.current = editor;
-    },
-    [],
-  );
+  const handleOutputEditorMount = useCallback((editor: Monaco.editor.IStandaloneCodeEditor) => {
+    outputEditorRef.current = editor;
+  }, []);
 
   const ResizeHandle = ({ isVertical }: { isVertical: boolean }) => (
     <PanelResizeHandle
       className={`${
-        isVertical
-          ? "h-1 bg-border hover:bg-border/80"
-          : "w-1 bg-border hover:bg-border/80"
+        isVertical ? "h-1 bg-border hover:bg-border/80" : "w-1 bg-border hover:bg-border/80"
       } transition-colors relative group`}
     >
       <div
@@ -389,11 +350,7 @@ function Editor() {
       {isMobile === undefined ? null : isMobile ? (
         /* Mobile layout (vertical) */
         <div className="flex flex-col h-full w-full">
-          <PanelGroup
-            id="editors-mobile"
-            direction="vertical"
-            className="h-full"
-          >
+          <PanelGroup id="editors-mobile" direction="vertical" className="h-full">
             <InputPanel
               inputFiles={inputFiles}
               activeInputFile={activeInputFile}
@@ -423,11 +380,7 @@ function Editor() {
       ) : (
         /* Desktop layout (horizontal) */
         <div className="flex h-full w-full">
-          <PanelGroup
-            id="editors-desktop"
-            direction="horizontal"
-            className="h-full"
-          >
+          <PanelGroup id="editors-desktop" direction="horizontal" className="h-full">
             <InputPanel
               inputFiles={inputFiles}
               activeInputFile={activeInputFile}
@@ -455,12 +408,7 @@ function Editor() {
             {enableDeps && bundleResult && (
               <>
                 <ResizeHandle isVertical={false} />
-                <Panel
-                  id="dependencies"
-                  defaultSize={25}
-                  minSize={15}
-                  className="min-h-0"
-                >
+                <Panel id="dependencies" defaultSize={25} minSize={15} className="min-h-0">
                   <DependencyPanel
                     modules={bundleResult.modules}
                     chunks={bundleResult.chunks}

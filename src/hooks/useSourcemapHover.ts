@@ -114,11 +114,7 @@ export function useSourcemapHover({
           }
           mappingsByLine.get(m.generatedLine)?.push(mapping);
 
-          if (
-            m.source &&
-            m.originalLine !== null &&
-            m.originalColumn !== null
-          ) {
+          if (m.source && m.originalLine !== null && m.originalColumn !== null) {
             if (!mappingsByOriginal.has(m.source)) {
               mappingsByOriginal.set(m.source, new Map());
             }
@@ -213,9 +209,7 @@ export function useSourcemapHover({
         ];
 
         for (const c of candidates) {
-          targetFile = inputFiles.find(
-            (f) => f.filename === c || c.endsWith(f.filename),
-          );
+          targetFile = inputFiles.find((f) => f.filename === c || c.endsWith(f.filename));
           if (targetFile) break;
         }
 
@@ -229,11 +223,7 @@ export function useSourcemapHover({
           // Look up color index for this segment
           const colorIndex =
             match.origLine !== null && match.origCol !== null
-              ? getColorIndexForSegment(
-                  match.source,
-                  match.origLine,
-                  match.origCol,
-                )
+              ? getColorIndexForSegment(match.source, match.origLine, match.origCol)
               : undefined;
 
           const mappedPos: MappedPosition = {
@@ -356,11 +346,7 @@ export function useSourcemapHover({
           }
 
           // Look up color index for this segment
-          const colorIndex = getColorIndexForSegment(
-            sourceKey,
-            match.origLine,
-            match.origCol,
-          );
+          const colorIndex = getColorIndexForSegment(sourceKey, match.origLine, match.origCol);
 
           const mappedPos: MappedPosition = {
             originalFilename: inputFile.filename,
