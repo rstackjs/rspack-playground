@@ -2,15 +2,15 @@ import { useAtom, useSetAtom } from "jotai";
 import { useCallback } from "react";
 import { bundle } from "@/lib/bundle";
 import {
+  type BundleResult,
   bindingLoadedAtom,
   bindingLoadingAtom,
   bundleResultAtom,
   isBundlingAtom,
-  rspackVersionAtom,
-  type BundleResult,
   type SourceFile,
 } from "@/store/bundler";
 import { activeOutputFileAtom } from "@/store/editor";
+import { rspackVersionAtom } from "@/store/version";
 
 function createBundleFailure(message: string): BundleResult {
   return {
@@ -63,7 +63,9 @@ export default function useBundle() {
         }
       } catch (error) {
         const message =
-          error instanceof Error ? error.message : "Failed to load rspack binding";
+          error instanceof Error
+            ? error.message
+            : "Failed to load rspack binding";
         setBundleResult(createBundleFailure(message));
       } finally {
         setBindingLoading(false);

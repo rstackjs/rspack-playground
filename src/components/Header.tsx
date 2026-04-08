@@ -24,6 +24,7 @@ import {
   SelectGroup,
   SelectItem,
   SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -31,20 +32,26 @@ import useBundle from "@/hooks/use-bundle";
 import { useDownloadProject } from "@/hooks/use-download";
 import { getShareUrl, type ShareData } from "@/lib/share";
 import {
-  availableVersionsAtom,
   bundleResultAtom,
   inputFilesAtom,
   isBundlingAtom,
-  rspackVersionAtom,
 } from "@/store/bundler";
 import { getPresetByName, getPresetFiles, presets } from "@/store/presets";
+import {
+  deprecatedAvailableRspackVersionsAtom,
+  enabledRspackVersionsAtom,
+  rspackVersionAtom,
+} from "@/store/version";
 
 export default function Header() {
   const iconButtonClassName =
     "size-7 rounded-md border-0 bg-transparent text-muted-foreground shadow-none hover:bg-accent/80 hover:text-foreground";
 
   const [rspackVersion, setRspackVersion] = useAtom(rspackVersionAtom);
-  const availableVersions = useAtomValue(availableVersionsAtom);
+  const enabledVersions = useAtomValue(enabledRspackVersionsAtom);
+  const deprecatedVersions = useAtomValue(
+    deprecatedAvailableRspackVersionsAtom,
+  );
   const [bundleResult] = useAtom(bundleResultAtom);
   const [isBundling] = useAtom(isBundlingAtom);
   const [inputFiles] = useAtom(inputFilesAtom);
@@ -134,12 +141,25 @@ export default function Header() {
               <SelectContent className="max-h-64">
                 <SelectGroup>
                   <SelectLabel>Rspack Core</SelectLabel>
-                  {availableVersions.map((version) => (
+                  {enabledVersions.map((version) => (
                     <SelectItem key={version} value={version}>
                       v{version}
                     </SelectItem>
                   ))}
                 </SelectGroup>
+                {deprecatedVersions.length > 0 && (
+                  <>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel>Deprecated</SelectLabel>
+                      {deprecatedVersions.map((version) => (
+                        <SelectItem key={version} value={version} disabled>
+                          v{version}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </>
+                )}
               </SelectContent>
             </Select>
           </div>
