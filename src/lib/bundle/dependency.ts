@@ -1,4 +1,4 @@
-// biome-ignore-all lint/suspicious/noExplicitAny: Rspack internal objects are untyped
+/* rslint-disable @typescript-eslint/no-explicit-any */
 import { normalizePath } from "@/lib/normalizePath";
 
 export type RspackModuleCategory = "source" | "dependency" | "runtime";
