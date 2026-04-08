@@ -8,8 +8,20 @@
     "build:sw": "rslib build",
     "dev": "rsbuild dev --open",
     "format": "oxfmt",
+    "format:check": "oxfmt --check .",
     "lint": "rslint --fix .",
+    "lint:check": "rslint .",
+    "prepare": "simple-git-hooks",
     "preview": "rsbuild preview"
+  },
+  "lint-staged": {
+    "**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}": [
+      "rslint --fix"
+    ],
+    "*": "oxfmt --write"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npx lint-staged"
   },
   "dependencies": {
     "@monaco-editor/react": "4.7.0",
@@ -48,9 +60,11 @@
     "@types/lodash-es": "^4.17.12",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "lint-staged": "^16.4.0",
     "mime": "^4.1.0",
     "monaco-editor": "^0.55.1",
     "oxfmt": "^0.44.0",
+    "simple-git-hooks": "^2.13.1",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3"
   }
