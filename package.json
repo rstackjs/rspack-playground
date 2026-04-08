@@ -14,15 +14,6 @@
     "prepare": "simple-git-hooks",
     "preview": "rsbuild preview"
   },
-  "lint-staged": {
-    "**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}": [
-      "rslint --fix"
-    ],
-    "*": "oxfmt --write"
-  },
-  "simple-git-hooks": {
-    "pre-commit": "npx lint-staged"
-  },
   "dependencies": {
     "@monaco-editor/react": "4.7.0",
     "@radix-ui/react-alert-dialog": "^1.1.15",
@@ -67,5 +58,14 @@
     "simple-git-hooks": "^2.13.1",
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npx lint-staged"
+  },
+  "lint-staged": {
+    "**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}": [
+      "rslint --fix"
+    ],
+    "*": "oxfmt --write --no-error-on-unmatched-pattern"
   }
 }
