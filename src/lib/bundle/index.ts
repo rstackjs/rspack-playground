@@ -23,10 +23,7 @@ const rspackManifestPromises = new Map<
   Promise<RspackBrowserPackageManifest>
 >();
 
-function createBundleFailure(
-  errors: string[],
-  duration = 0,
-): BundleResult {
+function createBundleFailure(errors: string[], duration = 0): BundleResult {
   return {
     duration,
     output: [],
@@ -65,7 +62,9 @@ function getJsdelivrEsmUrl(
 async function fetchRemoteText(url: string) {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`Failed to load ${url}: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Failed to load ${url}: ${response.status} ${response.statusText}`,
+    );
   }
   return response.text();
 }
@@ -73,7 +72,9 @@ async function fetchRemoteText(url: string) {
 async function fetchRemoteJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`Failed to load ${url}: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Failed to load ${url}: ${response.status} ${response.statusText}`,
+    );
   }
   return (await response.json()) as T;
 }
@@ -106,6 +107,12 @@ function replaceRequiredImportSource(
     new RegExp(`from\\s*["']${escapeRegExp(specifier)}["'];?`, "g"),
     `from ${JSON.stringify(replacement)};`,
     label,
+  );
+}
+
+function hasImportSource(source: string, specifier: string) {
+  return new RegExp(`from\\s*["']${escapeRegExp(specifier)}["'];?`).test(
+    source,
   );
 }
 
@@ -171,35 +178,28 @@ async function getRspackBrowserEntryUrls(
       "dist/wasi-worker-browser.mjs",
     );
 
-    const [entrySource, runtimeSource, wasiSource, workerSource] =
-      await Promise.all([
-        fetchRemoteText(browserEntryUrl),
-        fetchRemoteText(browserRuntimeUrl),
-        fetchRemoteText(browserWasiUrl),
-        fetchRemoteText(browserWorkerUrl),
-      ]);
+    const [entrySource, wasiSource, workerSource] = await Promise.all([
+      fetchRemoteText(browserEntryUrl),
+      fetchRemoteText(browserWasiUrl),
+      fetchRemoteText(browserWorkerUrl),
+    ]);
 
-    const runtimeModuleUrl = createBlobModuleUrl(runtimeSource);
+    const runtimeModuleUrl = hasImportSource(entrySource, "./rslib-runtime.js")
+      ? createBlobModuleUrl(await fetchRemoteText(browserRuntimeUrl))
+      : null;
     const workerModuleUrl = createBlobModuleUrl(workerSource);
     const wasmUrl = getRspackBrowserUrl(version);
 
     let rewrittenWasiSource = replaceRequiredImportSource(
       wasiSource,
       "@napi-rs/wasm-runtime",
-      getJsdelivrEsmUrl(
-        "@napi-rs/wasm-runtime",
-        wasmRuntimeVersion,
-      ),
+      getJsdelivrEsmUrl("@napi-rs/wasm-runtime", wasmRuntimeVersion),
       "@napi-rs/wasm-runtime import",
     );
     rewrittenWasiSource = replaceRequiredImportSource(
       rewrittenWasiSource,
       "@napi-rs/wasm-runtime/fs",
-      getJsdelivrEsmUrl(
-        "@napi-rs/wasm-runtime",
-        wasmRuntimeVersion,
-        "fs",
-      ),
+      getJsdelivrEsmUrl("@napi-rs/wasm-runtime", wasmRuntimeVersion, "fs"),
       "@napi-rs/wasm-runtime/fs import",
     );
     rewrittenWasiSource = replaceRequired(
@@ -223,19 +223,18 @@ async function getRspackBrowserEntryUrls(
       wasiModuleUrl,
       "rspack.wasi-browser import",
     );
-    rewrittenEntrySource = replaceRequiredImportSource(
-      rewrittenEntrySource,
-      "./rslib-runtime.js",
-      runtimeModuleUrl,
-      "rslib runtime import",
-    );
+    if (runtimeModuleUrl) {
+      rewrittenEntrySource = replaceRequiredImportSource(
+        rewrittenEntrySource,
+        "./rslib-runtime.js",
+        runtimeModuleUrl,
+        "rslib runtime import",
+      );
+    }
     rewrittenEntrySource = replaceRequiredImportSource(
       rewrittenEntrySource,
       "@rspack/lite-tapable",
-      getJsdelivrEsmUrl(
-        "@rspack/lite-tapable",
-        liteTapableVersion,
-      ),
+      getJsdelivrEsmUrl("@rspack/lite-tapable", liteTapableVersion),
       "@rspack/lite-tapable import",
     );
 
@@ -262,7 +261,9 @@ async function importRspackBrowser(version: string): Promise<RspackBrowserAPI> {
 
   const modulePromise = (async () => {
     const { entryModuleUrl } = await getRspackBrowserEntryUrls(version);
-    return import(/* webpackIgnore: true */ entryModuleUrl) as Promise<RspackBrowserAPI>;
+    return import(
+      /* webpackIgnore: true */ entryModuleUrl
+    ) as Promise<RspackBrowserAPI>;
   })();
   rspackModulePromises.set(version, modulePromise);
 
