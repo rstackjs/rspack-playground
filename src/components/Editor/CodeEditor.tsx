@@ -30,7 +30,7 @@ export default function CodeEditor({
   onContentChange,
   onEditorMount,
 }: CodeEditorProps) {
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
   const currentFile = files[activeIndex];
 
@@ -105,7 +105,7 @@ export default function CodeEditor({
         <MonacoEditor
           value={currentFile.text}
           language={getLanguage(currentFile.filename)}
-          theme={theme === "dark" ? "vs-dark" : "vs"}
+          theme={resolvedTheme === "dark" ? "vs-dark" : "vs"}
           onChange={handleContentChange}
           onMount={(editor, monaco) => {
             const jsOptions = monaco.languages.typescript.javascriptDefaults.getCompilerOptions();
