@@ -78,6 +78,21 @@ function replaceRequired(
   return nextSource;
 }
 
+function replaceRequiredAny(
+  source: string,
+  patterns: Array<string | RegExp>,
+  replacement: string,
+  label: string,
+) {
+  for (const pattern of patterns) {
+    const nextSource = source.replace(pattern, replacement);
+    if (nextSource !== source) {
+      return nextSource;
+    }
+  }
+  throw new Error(`Failed to rewrite ${label} for remote rspack loading`);
+}
+
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -167,15 +182,22 @@ async function getRspackBrowserEntryUrls(version: string): Promise<RspackBrowser
       getJsdelivrEsmUrl("@napi-rs/wasm-runtime", wasmRuntimeVersion, "fs"),
       "@napi-rs/wasm-runtime/fs import",
     );
-    rewrittenWasiSource = replaceRequired(
+    rewrittenWasiSource = replaceRequiredAny(
       rewrittenWasiSource,
-      /window\.RSPACK_WASM_URL\s*\|\|\s*new URL\((["'])\.\/rspack\.wasm32-wasi\.wasm\1,\s*import\.meta\.url\)\.href/g,
+      [
+        /(?:window|globalThis)\.RSPACK_WASM_URL\s*(?:\|\||\?\?)\s*new URL\((["'])\.\/rspack\.wasm32-wasi\.wasm\1,\s*import\.meta\.url\)\.href/g,
+        /new URL\((["'])\.\/rspack\.wasm32-wasi\.wasm\1,\s*import\.meta\.url\)\.href/g,
+        /new URL\((["'])\.\/rspack\.wasm32-wasi\.wasm\1,\s*import\.meta\.url\)/g,
+      ],
       JSON.stringify(wasmUrl),
       "rspack wasm url",
     );
-    rewrittenWasiSource = replaceRequired(
+    rewrittenWasiSource = replaceRequiredAny(
       rewrittenWasiSource,
-      /new URL\((["'])\.\/wasi-worker-browser\.mjs\1,\s*import\.meta\.url\)/g,
+      [
+        /new URL\((["'])\.\/wasi-worker-browser\.mjs\1,\s*import\.meta\.url\)\.href/g,
+        /new URL\((["'])\.\/wasi-worker-browser\.mjs\1,\s*import\.meta\.url\)/g,
+      ],
       JSON.stringify(workerModuleUrl),
       "rspack worker url",
     );
