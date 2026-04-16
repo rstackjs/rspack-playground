@@ -3,13 +3,55 @@ import { atom } from "jotai";
 import { deserializeShareData } from "@/lib/share";
 
 export const deprecatedRspackVersions = ["2.0.0-rc.1"] as const;
+const canaryVersionLimit = 10;
+
+interface NpmRegistryPackageMetadata {
+  time?: Record<string, string>;
+  versions?: Record<string, unknown>;
+}
 
 export function isDeprecatedRspackVersion(version: string) {
   return deprecatedRspackVersions.includes(version as (typeof deprecatedRspackVersions)[number]);
 }
 
+export function isCanaryRspackVersion(version: string) {
+  const normalizedVersion = version.split("+", 1)[0] ?? version;
+  const prerelease = normalizedVersion.split("-").slice(1).join("-");
+  return prerelease.toLowerCase().includes("canary");
+}
+
 function getEnabledRspackVersions(versions: string[]) {
-  return versions.filter((version) => !isDeprecatedRspackVersion(version));
+  return versions.filter(
+    (version) => !isDeprecatedRspackVersion(version) && !isCanaryRspackVersion(version),
+  );
+}
+
+function compareVersionStrings(a: string, b: string) {
+  return b.localeCompare(a, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
+function sortVersionsByPublishedTime(
+  versions: string[],
+  publishedTime: Record<string, string> | undefined,
+) {
+  return [...versions].sort((a, b) => {
+    const timeA = publishedTime?.[a];
+    const timeB = publishedTime?.[b];
+    if (timeA && timeB) {
+      return Date.parse(timeB) - Date.parse(timeA);
+    }
+    if (timeB) return 1;
+    if (timeA) return -1;
+    return compareVersionStrings(a, b);
+  });
+}
+
+async function fetchRegistryMetadata(packageName: string): Promise<NpmRegistryPackageMetadata> {
+  const res = await fetch(`https://registry.npmjs.org/${packageName}`);
+  return (await res.json()) as NpmRegistryPackageMetadata;
 }
 
 function getInitRspackVersionFromHash() {
@@ -37,14 +79,14 @@ export function getSafeInitRspackVersion() {
 }
 
 export const availableVersionsAtom = atom(async () => {
-  const res = await fetch("https://registry.npmjs.org/@rspack/browser");
-  const data = await res.json();
-  return Object.keys(data.versions).sort((a, b) => {
-    return b.localeCompare(a, undefined, {
-      numeric: true,
-      sensitivity: "base",
-    });
-  });
+  const data = await fetchRegistryMetadata("@rspack/browser");
+  return Object.keys(data.versions ?? {}).sort(compareVersionStrings);
+});
+
+export const recentCanaryRspackVersionsAtom = atom(async () => {
+  const data = await fetchRegistryMetadata("@rspack-canary/browser");
+  const versions = sortVersionsByPublishedTime(Object.keys(data.versions ?? {}), data.time);
+  return versions.slice(0, canaryVersionLimit);
 });
 
 export const enabledRspackVersionsAtom = atom(async (get) => {

@@ -36,8 +36,36 @@ import { getPresetByName, getPresetFiles, presets } from "@/store/presets";
 import {
   deprecatedAvailableRspackVersionsAtom,
   enabledRspackVersionsAtom,
+  isCanaryRspackVersion,
+  recentCanaryRspackVersionsAtom,
   rspackVersionAtom,
 } from "@/store/version";
+
+function formatCanaryTimestamp(timestamp: string) {
+  if (!/^\d{14}$/.test(timestamp)) {
+    return timestamp;
+  }
+
+  return `${timestamp.slice(0, 4)}-${timestamp.slice(4, 6)}-${timestamp.slice(6, 8)} ${timestamp.slice(8, 10)}:${timestamp.slice(10, 12)}`;
+}
+
+function getVersionDisplay(version: string) {
+  const canaryMatch = version.match(/^(.*-canary)-([0-9a-f]+)-(\d{14})$/i);
+  if (!canaryMatch) {
+    return {
+      shortLabel: `v${version}`,
+      detailLabel: null,
+      fullLabel: `v${version}`,
+    };
+  }
+
+  const [, releaseLabel, hash, timestamp] = canaryMatch;
+  return {
+    shortLabel: `v${releaseLabel}`,
+    detailLabel: `${hash.slice(0, 8)} · ${formatCanaryTimestamp(timestamp)}`,
+    fullLabel: `v${version}`,
+  };
+}
 
 export default function Header() {
   const iconButtonClassName =
@@ -45,7 +73,13 @@ export default function Header() {
 
   const [rspackVersion, setRspackVersion] = useAtom(rspackVersionAtom);
   const enabledVersions = useAtomValue(enabledRspackVersionsAtom);
+  const canaryVersions = useAtomValue(recentCanaryRspackVersionsAtom);
   const deprecatedVersions = useAtomValue(deprecatedAvailableRspackVersionsAtom);
+  const visibleCanaryVersions =
+    isCanaryRspackVersion(rspackVersion) && !canaryVersions.includes(rspackVersion)
+      ? [rspackVersion, ...canaryVersions]
+      : canaryVersions;
+  const selectedVersionDisplay = getVersionDisplay(rspackVersion);
   const [bundleResult] = useAtom(bundleResultAtom);
   const [isBundling] = useAtom(isBundlingAtom);
   const [inputFiles] = useAtom(inputFilesAtom);
@@ -126,29 +160,59 @@ export default function Header() {
             >
               <SelectTrigger
                 size="sm"
-                className="h-7 min-w-[96px] border bg-background/80 px-2.5 text-xs shadow-none hover:bg-background"
-                title={`Switch Rspack Core version (current: v${rspackVersion})`}
-                aria-label={`Switch Rspack Core version, current v${rspackVersion}`}
+                className="h-7 w-[188px] border bg-background/80 px-2.5 text-xs shadow-none hover:bg-background"
+                title={`Switch Rspack version (current: ${selectedVersionDisplay.fullLabel})`}
+                aria-label={`Switch Rspack version, current ${selectedVersionDisplay.fullLabel}`}
               >
-                <SelectValue placeholder="Rspack Core" />
+                <SelectValue placeholder="Rspack Version">
+                  {selectedVersionDisplay.shortLabel}
+                </SelectValue>
               </SelectTrigger>
-              <SelectContent className="max-h-64">
+              <SelectContent className="max-h-64 w-[280px]">
                 <SelectGroup>
                   <SelectLabel>Rspack Core</SelectLabel>
                   {enabledVersions.map((version) => (
-                    <SelectItem key={version} value={version}>
-                      v{version}
+                    <SelectItem key={version} value={version} title={`v${version}`}>
+                      {getVersionDisplay(version).shortLabel}
                     </SelectItem>
                   ))}
                 </SelectGroup>
+                {visibleCanaryVersions.length > 0 && (
+                  <>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel>Rspack Canary</SelectLabel>
+                      {visibleCanaryVersions.map((version) => {
+                        const display = getVersionDisplay(version);
+                        return (
+                          <SelectItem
+                            key={version}
+                            value={version}
+                            title={display.fullLabel}
+                            className="items-start"
+                          >
+                            <div className="flex min-w-0 flex-col gap-0.5">
+                              <span className="truncate">{display.shortLabel}</span>
+                              {display.detailLabel && (
+                                <span className="text-muted-foreground truncate text-[11px]">
+                                  {display.detailLabel}
+                                </span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectGroup>
+                  </>
+                )}
                 {deprecatedVersions.length > 0 && (
                   <>
                     <SelectSeparator />
                     <SelectGroup>
                       <SelectLabel>Deprecated</SelectLabel>
                       {deprecatedVersions.map((version) => (
-                        <SelectItem key={version} value={version} disabled>
-                          v{version}
+                        <SelectItem key={version} value={version} disabled title={`v${version}`}>
+                          {getVersionDisplay(version).shortLabel}
                         </SelectItem>
                       ))}
                     </SelectGroup>

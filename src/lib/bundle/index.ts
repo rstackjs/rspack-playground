@@ -2,6 +2,7 @@ import type { RspackOptions } from "@rspack/browser";
 import { format } from "@/lib/format";
 import type { BundleResult, SourceFile } from "@/store/bundler";
 import { RSPACK_CONFIG } from "@/store/common";
+import { isCanaryRspackVersion } from "@/store/version";
 import { DependenciesPlugin } from "./dependency";
 
 type RspackBrowserAPI = typeof import("@rspack/browser");
@@ -33,15 +34,19 @@ function createBundleFailure(errors: string[], duration = 0): BundleResult {
 }
 
 function getRspackBrowserUrl(version: string) {
-  return `https://cdn.jsdelivr.net/npm/@rspack/browser@${encodeURIComponent(version)}/dist/rspack.wasm32-wasi.wasm`;
+  return getRspackBrowserFileUrl(version, "dist/rspack.wasm32-wasi.wasm");
 }
 
 function getRspackBrowserBaseUrl(version: string) {
-  return `https://cdn.jsdelivr.net/npm/@rspack/browser@${encodeURIComponent(version)}`;
+  return `https://cdn.jsdelivr.net/npm/${getRspackBrowserPackageName(version)}@${encodeURIComponent(version)}`;
 }
 
 function getRspackBrowserFileUrl(version: string, filePath: string) {
   return `${getRspackBrowserBaseUrl(version)}/${filePath}`;
+}
+
+function getRspackBrowserPackageName(version: string) {
+  return isCanaryRspackVersion(version) ? "@rspack-canary/browser" : "@rspack/browser";
 }
 
 function getJsdelivrEsmUrl(packageName: string, version: string, subpath?: string) {
