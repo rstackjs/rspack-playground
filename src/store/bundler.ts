@@ -41,6 +41,7 @@ function getInitFiles() {
 export const bindingLoadedAtom = atom<string | null>(null);
 export const bindingLoadingAtom = atom(false);
 export const isBundlingAtom = atom(false);
+export const latestBundleRequestIdAtom = atom(0);
 export const inputFilesAtom = atom<SourceFile[]>(getInitFiles());
 export const bundleResultAtom = atom<BundleResult | null>(null);
 export const enableFormatCode = atom(true);

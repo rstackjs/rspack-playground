@@ -1,4 +1,4 @@
-import { useAtom, useSetAtom } from "jotai";
+import { useAtom, useSetAtom, useStore } from "jotai";
 import { useCallback } from "react";
 import { bundle } from "@/lib/bundle";
 import {
@@ -7,6 +7,7 @@ import {
   bindingLoadingAtom,
   bundleResultAtom,
   isBundlingAtom,
+  latestBundleRequestIdAtom,
   type SourceFile,
 } from "@/store/bundler";
 import { activeOutputFileAtom } from "@/store/editor";
@@ -35,11 +36,15 @@ export default function useBundle() {
   const setBundleResult = useSetAtom(bundleResultAtom);
   const [activeOutputFile, setActiveOutputFile] = useAtom(activeOutputFileAtom);
   const [rspackVersion] = useAtom(rspackVersionAtom);
+  const store = useStore();
 
   const handleBundle = useCallback(
     async (files: SourceFile[], versionOverride?: string) => {
+      const requestId = store.get(latestBundleRequestIdAtom) + 1;
+      store.set(latestBundleRequestIdAtom, requestId);
       const targetVersion = versionOverride ?? rspackVersion;
       const shouldLoadBinding = bindingLoadedVersion !== targetVersion;
+      const isLatestRequest = () => requestId === store.get(latestBundleRequestIdAtom);
 
       setIsBundling(true);
       if (shouldLoadBinding) {
@@ -48,6 +53,10 @@ export default function useBundle() {
 
       try {
         const result = await bundle(files, targetVersion);
+        if (!isLatestRequest()) {
+          return;
+        }
+
         setBundleResult(result);
 
         if (shouldLoadBinding) {
@@ -58,11 +67,17 @@ export default function useBundle() {
           setActiveOutputFile(0);
         }
       } catch (error) {
+        if (!isLatestRequest()) {
+          return;
+        }
+
         const message = error instanceof Error ? error.message : "Failed to load rspack binding";
         setBundleResult(createBundleFailure(message));
       } finally {
-        setBindingLoading(false);
-        setIsBundling(false);
+        if (isLatestRequest()) {
+          setBindingLoading(false);
+          setIsBundling(false);
+        }
       }
     },
     [
@@ -74,6 +89,7 @@ export default function useBundle() {
       setBundleResult,
       setBindingLoadedVersion,
       setBindingLoading,
+      store,
     ],
   );
 

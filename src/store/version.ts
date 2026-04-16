@@ -1,6 +1,9 @@
 import rspackBrowserPackage from "@rspack/browser/package.json";
 import { atom } from "jotai";
+import { isCanaryRspackVersion } from "@/lib/rspack-version";
 import { deserializeShareData } from "@/lib/share";
+
+export { isCanaryRspackVersion } from "@/lib/rspack-version";
 
 export const deprecatedRspackVersions = ["2.0.0-rc.1"] as const;
 const canaryVersionLimit = 10;
@@ -12,12 +15,6 @@ interface NpmRegistryPackageMetadata {
 
 export function isDeprecatedRspackVersion(version: string) {
   return deprecatedRspackVersions.includes(version as (typeof deprecatedRspackVersions)[number]);
-}
-
-export function isCanaryRspackVersion(version: string) {
-  const normalizedVersion = version.split("+", 1)[0] ?? version;
-  const prerelease = normalizedVersion.split("-").slice(1).join("-");
-  return prerelease.toLowerCase().includes("canary");
 }
 
 function getEnabledRspackVersions(versions: string[]) {
