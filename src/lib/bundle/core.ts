@@ -14,6 +14,16 @@ interface RspackBrowserRemoteEntryUrls {
   entryModuleUrl: string;
 }
 
+class RemoteFetchError extends Error {
+  constructor(
+    public readonly url: string,
+    public readonly status: number,
+    public readonly statusText: string,
+  ) {
+    super(`Failed to load ${url}: ${status} ${statusText}`);
+  }
+}
+
 const rspackModulePromises = new Map<string, Promise<RspackBrowserAPI>>();
 const rspackEntryPromises = new Map<string, Promise<RspackBrowserRemoteEntryUrls>>();
 const rspackManifestPromises = new Map<string, Promise<RspackBrowserPackageManifest>>();
@@ -54,20 +64,45 @@ function getJsdelivrEsmUrl(packageName: string, version: string, subpath?: strin
   return `https://cdn.jsdelivr.net/npm/${packageName}@${encodeURIComponent(version)}${suffix}/+esm`;
 }
 
-async function fetchRemoteText(url: string) {
+function getPreferredRspackBrowserModuleExtensions(version: string) {
+  const [majorText] = version.split(".", 1);
+  const major = Number.parseInt(majorText ?? "", 10);
+  return Number.isFinite(major) && major >= 2 ? ["js", "mjs"] : ["mjs", "js"];
+}
+
+async function fetchRemote(url: string) {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`Failed to load ${url}: ${response.status} ${response.statusText}`);
+    throw new RemoteFetchError(url, response.status, response.statusText);
   }
-  return response.text();
+  return response;
+}
+
+async function fetchRemoteText(url: string) {
+  return (await fetchRemote(url)).text();
 }
 
 async function fetchRemoteJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`Failed to load ${url}: ${response.status} ${response.statusText}`);
+  return (await fetchRemote(url)).json() as Promise<T>;
+}
+
+async function fetchFirstAvailableRemoteText(urls: string[]) {
+  let lastNotFoundError: RemoteFetchError | null = null;
+
+  for (const url of urls) {
+    try {
+      return await fetchRemoteText(url);
+    } catch (error) {
+      if (error instanceof RemoteFetchError && error.status === 404) {
+        lastNotFoundError = error;
+        continue;
+      }
+
+      throw error;
+    }
   }
-  return (await response.json()) as T;
+
+  throw lastNotFoundError ?? new Error("Failed to load remote rspack entry");
 }
 
 function replaceRequired(
@@ -120,6 +155,16 @@ function hasImportSource(source: string, specifier: string) {
   return new RegExp(`from\\s*["']${escapeRegExp(specifier)}["'];?`).test(source);
 }
 
+function findImportSource(source: string, specifiers: string[]) {
+  for (const specifier of specifiers) {
+    if (hasImportSource(source, specifier)) {
+      return specifier;
+    }
+  }
+
+  return null;
+}
+
 function createBlobModuleUrl(source: string) {
   return URL.createObjectURL(new Blob([source], { type: "text/javascript;charset=utf-8" }));
 }
@@ -158,18 +203,36 @@ async function getRspackBrowserEntryUrls(version: string): Promise<RspackBrowser
       throw new Error(`Rspack browser ${version} is missing published dependency metadata`);
     }
 
-    const browserEntryUrl = getRspackBrowserFileUrl(version, "dist/index.js");
-    const browserRuntimeUrl = getRspackBrowserFileUrl(version, "dist/rslib-runtime.js");
-    const browserWasiUrl = getRspackBrowserFileUrl(version, "dist/rspack.wasi-browser.js");
+    const entrySource = await fetchFirstAvailableRemoteText(
+      getPreferredRspackBrowserModuleExtensions(version).map((moduleExtension) =>
+        getRspackBrowserFileUrl(version, `dist/index.${moduleExtension}`),
+      ),
+    );
+    const runtimeImportSource = findImportSource(entrySource, [
+      "./rslib-runtime.mjs",
+      "./rslib-runtime.js",
+    ]);
+    const wasiImportSource = findImportSource(entrySource, [
+      "./rspack.wasi-browser.mjs",
+      "./rspack.wasi-browser.js",
+    ]);
+
+    if (!wasiImportSource) {
+      throw new Error(`Failed to detect rspack.wasi-browser import for remote rspack ${version}`);
+    }
+
+    const browserRuntimeUrl = runtimeImportSource
+      ? getRspackBrowserFileUrl(version, `dist/${runtimeImportSource.slice(2)}`)
+      : null;
+    const browserWasiUrl = getRspackBrowserFileUrl(version, `dist/${wasiImportSource.slice(2)}`);
     const browserWorkerUrl = getRspackBrowserFileUrl(version, "dist/wasi-worker-browser.mjs");
 
-    const [entrySource, wasiSource, workerSource] = await Promise.all([
-      fetchRemoteText(browserEntryUrl),
+    const [wasiSource, workerSource] = await Promise.all([
       fetchRemoteText(browserWasiUrl),
       fetchRemoteText(browserWorkerUrl),
     ]);
 
-    const runtimeModuleUrl = hasImportSource(entrySource, "./rslib-runtime.js")
+    const runtimeModuleUrl = browserRuntimeUrl
       ? createBlobModuleUrl(await fetchRemoteText(browserRuntimeUrl))
       : null;
     const workerModuleUrl = createBlobModuleUrl(workerSource);
@@ -211,14 +274,14 @@ async function getRspackBrowserEntryUrls(version: string): Promise<RspackBrowser
 
     let rewrittenEntrySource = replaceRequiredImportSource(
       entrySource,
-      "./rspack.wasi-browser.js",
+      wasiImportSource,
       wasiModuleUrl,
       "rspack.wasi-browser import",
     );
-    if (runtimeModuleUrl) {
+    if (runtimeModuleUrl && runtimeImportSource) {
       rewrittenEntrySource = replaceRequiredImportSource(
         rewrittenEntrySource,
-        "./rslib-runtime.js",
+        runtimeImportSource,
         runtimeModuleUrl,
         "rslib runtime import",
       );
