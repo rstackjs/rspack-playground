@@ -52,7 +52,15 @@ function ensureWorker() {
   return bundleWorker;
 }
 
+function resetWorker(error: Error) {
+  rejectPendingRequests(error);
+  bundleWorker?.terminate();
+  bundleWorker = null;
+}
+
 export async function bundle(files: SourceFile[], version: string): Promise<BundleResult> {
+  resetWorker(new Error("Bundle request superseded by a newer request"));
+
   const worker = ensureWorker();
   const id = nextRequestId++;
 
