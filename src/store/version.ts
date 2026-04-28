@@ -13,6 +13,13 @@ interface NpmRegistryPackageMetadata {
   versions?: Record<string, unknown>;
 }
 
+interface ParsedVersion {
+  major: number;
+  minor: number;
+  patch: number;
+  prerelease: string[];
+}
+
 export function isDeprecatedRspackVersion(version: string) {
   return deprecatedRspackVersions.includes(version as (typeof deprecatedRspackVersions)[number]);
 }
@@ -24,10 +31,80 @@ function getEnabledRspackVersions(versions: string[]) {
 }
 
 function compareVersionStrings(a: string, b: string) {
+  const parsedA = parseVersion(a);
+  const parsedB = parseVersion(b);
+  if (parsedA && parsedB) {
+    return compareParsedVersions(parsedB, parsedA);
+  }
+
+  return compareVersionNames(a, b);
+}
+
+function compareVersionNames(a: string, b: string) {
   return b.localeCompare(a, undefined, {
     numeric: true,
     sensitivity: "base",
   });
+}
+
+function parseVersion(version: string): ParsedVersion | null {
+  const match = version.match(/^(\d+)\.(\d+)\.(\d+)(?:-([^+]+))?(?:\+.*)?$/);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    major: Number(match[1]),
+    minor: Number(match[2]),
+    patch: Number(match[3]),
+    prerelease: match[4]?.split(".") ?? [],
+  };
+}
+
+function compareParsedVersions(a: ParsedVersion, b: ParsedVersion) {
+  const releaseDiff = a.major - b.major || a.minor - b.minor || a.patch - b.patch;
+  if (releaseDiff !== 0) {
+    return releaseDiff;
+  }
+
+  if (a.prerelease.length === 0 && b.prerelease.length === 0) {
+    return 0;
+  }
+  if (a.prerelease.length === 0) {
+    return 1;
+  }
+  if (b.prerelease.length === 0) {
+    return -1;
+  }
+
+  const length = Math.max(a.prerelease.length, b.prerelease.length);
+  for (let i = 0; i < length; i++) {
+    const itemA = a.prerelease[i];
+    const itemB = b.prerelease[i];
+    if (itemA === undefined) return -1;
+    if (itemB === undefined) return 1;
+
+    const numberA = getPrereleaseNumber(itemA);
+    const numberB = getPrereleaseNumber(itemB);
+    if (numberA !== null && numberB !== null) {
+      const diff = numberA - numberB;
+      if (diff !== 0) return diff;
+      continue;
+    }
+    if (numberA !== null) return -1;
+    if (numberB !== null) return 1;
+
+    const diff = itemA.localeCompare(itemB);
+    if (diff !== 0) {
+      return diff;
+    }
+  }
+
+  return 0;
+}
+
+function getPrereleaseNumber(value: string) {
+  return /^\d+$/.test(value) ? Number(value) : null;
 }
 
 function sortVersionsByPublishedTime(
