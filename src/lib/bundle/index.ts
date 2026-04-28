@@ -1,72 +1,67 @@
 import type { BundleResult, SourceFile } from "@/store/bundler";
 import type { BundleWorkerRequest, BundleWorkerResponse } from "./protocol";
 
-let nextRequestId = 0;
-let bundleWorker: Worker | null = null;
+let currentBundle: {
+  worker: Worker;
+  reject: (error: Error) => void;
+} | null = null;
 
-const pendingRequests = new Map<
-  number,
-  {
-    resolve: (result: BundleResult) => void;
-    reject: (error: Error) => void;
-  }
->();
-
-function rejectPendingRequests(error: Error) {
-  for (const { reject } of pendingRequests.values()) {
-    reject(error);
-  }
-  pendingRequests.clear();
-}
-
-function ensureWorker() {
-  if (bundleWorker) {
-    return bundleWorker;
+function stopCurrentBundle(error: Error) {
+  if (!currentBundle) {
+    return;
   }
 
-  bundleWorker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
-
-  bundleWorker.onmessage = (event: MessageEvent<BundleWorkerResponse>) => {
-    const response = event.data;
-    const pending = pendingRequests.get(response.id);
-    if (!pending) {
-      return;
-    }
-
-    pendingRequests.delete(response.id);
-    if (response.ok) {
-      pending.resolve(response.result);
-      return;
-    }
-
-    pending.reject(new Error(response.error));
-  };
-
-  bundleWorker.onerror = (event) => {
-    const error = new Error(event.message || "Rspack worker crashed");
-    rejectPendingRequests(error);
-    bundleWorker?.terminate();
-    bundleWorker = null;
-  };
-
-  return bundleWorker;
+  const { worker, reject } = currentBundle;
+  currentBundle = null;
+  worker.terminate();
+  reject(error);
 }
 
 export async function bundle(files: SourceFile[], version: string): Promise<BundleResult> {
-  const worker = ensureWorker();
-  const id = nextRequestId++;
+  stopCurrentBundle(new Error("Bundle request superseded"));
 
+  const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
   const request: BundleWorkerRequest = {
-    id,
     files,
     version,
   };
 
   return new Promise((resolve, reject) => {
-    pendingRequests.set(id, {
-      resolve,
-      reject,
-    });
+    const bundleState = { worker, reject };
+    currentBundle = bundleState;
+
+    const clearCurrentBundle = () => {
+      if (currentBundle === bundleState) {
+        currentBundle = null;
+      }
+    };
+
+    worker.onmessage = (event: MessageEvent<BundleWorkerResponse>) => {
+      if (currentBundle !== bundleState) {
+        return;
+      }
+
+      clearCurrentBundle();
+
+      const response = event.data;
+      if (response.ok) {
+        resolve(response.result);
+        return;
+      }
+
+      reject(new Error(response.error));
+    };
+
+    worker.onerror = (event) => {
+      if (currentBundle !== bundleState) {
+        return;
+      }
+
+      clearCurrentBundle();
+      worker.terminate();
+      reject(new Error(event.message || "Rspack worker crashed"));
+    };
+
     worker.postMessage(request);
   });
 }

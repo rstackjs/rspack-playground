@@ -6,6 +6,15 @@ import { RSPACK_CONFIG } from "@/store/common";
 import { DependenciesPlugin } from "./dependency";
 
 type RspackBrowserAPI = typeof import("@rspack/browser");
+type RspackStats = {
+  toJson: (options: { all: false; errors: true; warnings: false }) => {
+    errors?: Array<{ message: string }>;
+    warnings?: Array<{ message: string }>;
+  };
+};
+type RspackCompiler = {
+  run: (callback: (error: Error | null, stats?: RspackStats) => void) => void;
+};
 interface RspackBrowserPackageManifest {
   dependencies?: Record<string, string>;
 }
@@ -375,7 +384,8 @@ export async function bundle(files: SourceFile[], version: string): Promise<Bund
 
   const startTime = performance.now();
   return new Promise((resolve) => {
-    rspack(options, async (err, stats) => {
+    const compiler = rspack(options) as RspackCompiler;
+    compiler.run(async (err, stats) => {
       if (err) {
         const endTime = performance.now();
         resolve(createBundleFailure([err.message], endTime - startTime));
