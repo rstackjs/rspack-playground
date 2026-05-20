@@ -2,6 +2,9 @@ packages:
   - .
   - sw
 
+allowBuilds:
+  simple-git-hooks: true
+
 ignoredBuiltDependencies:
   - "@tailwindcss/oxide"
   - simple-git-hooks
