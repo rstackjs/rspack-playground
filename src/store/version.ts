@@ -1,4 +1,4 @@
-import rspackBrowserPackage from "@rspack/browser/package.json";
+import projectPackage from "../../package.json";
 import { atom } from "jotai";
 import { isCanaryRspackVersion } from "@/lib/rspack-version";
 import { deserializeShareData } from "@/lib/share";
@@ -11,6 +11,11 @@ const canaryVersionLimit = 10;
 interface NpmRegistryPackageMetadata {
   time?: Record<string, string>;
   versions?: Record<string, unknown>;
+}
+
+interface ProjectPackageMetadata {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
 }
 
 interface ParsedVersion {
@@ -144,12 +149,20 @@ export function getSafeInitRspackVersion() {
     return initialVersion;
   }
 
-  if (!isDeprecatedRspackVersion(rspackBrowserPackage.version)) {
-    return rspackBrowserPackage.version;
+  const rspackBrowserVersion = getLocalRspackBrowserVersion();
+  if (rspackBrowserVersion && !isDeprecatedRspackVersion(rspackBrowserVersion)) {
+    return rspackBrowserVersion;
   }
 
   // Only used for generating the initial preset before registry versions load.
   return "1.0.0";
+}
+
+function getLocalRspackBrowserVersion() {
+  const metadata = projectPackage as ProjectPackageMetadata;
+  return (
+    metadata.devDependencies?.["@rspack/browser"] ?? metadata.dependencies?.["@rspack/browser"]
+  );
 }
 
 export const availableVersionsAtom = atom(async () => {

@@ -4,11 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-patchedDependencies:
-  '@rspack/browser':
-    hash: 492567773ebafa765b885423511c26caa7147dddce4c4e536bac004c48a8db1c
-    path: patches/@rspack__browser.patch
-
 importers:
 
   .:
@@ -40,9 +35,6 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.2.8
         version: 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
-      '@rspack/browser':
-        specifier: 2.0.1
-        version: 2.0.1(patch_hash=492567773ebafa765b885423511c26caa7147dddce4c4e536bac004c48a8db1c)(@swc/helpers@0.5.21)
       ansis:
         specifier: ^4.2.0
         version: 4.2.0
@@ -104,6 +96,9 @@ importers:
       '@rslint/core':
         specifier: ^0.5.1
         version: 0.5.1(jiti@2.6.1)
+      '@rspack/browser':
+        specifier: 2.0.1
+        version: 2.0.1(@swc/helpers@0.5.21)
       '@tailwindcss/postcss':
         specifier: ^4.2.4
         version: 4.2.4
@@ -2562,7 +2557,7 @@ snapshots:
       '@rspack/binding-win32-ia32-msvc': 2.0.1
       '@rspack/binding-win32-x64-msvc': 2.0.1
 
-  '@rspack/browser@2.0.1(patch_hash=492567773ebafa765b885423511c26caa7147dddce4c4e536bac004c48a8db1c)(@swc/helpers@0.5.21)':
+  '@rspack/browser@2.0.1(@swc/helpers@0.5.21)':
     dependencies:
       '@emnapi/core': 1.10.0
       '@emnapi/runtime': 1.10.0
