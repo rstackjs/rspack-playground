@@ -179,9 +179,8 @@ const defaultRspackVersionAtom = atom(async (get) => {
 
   return (
     (initialVersion && !isDeprecatedRspackVersion(initialVersion) ? initialVersion : undefined) ??
-    (versions.includes(rspackBrowserPackage.version)
-      ? rspackBrowserPackage.version
-      : (versions[0] ?? ""))
+    versions[0] ??
+    getSafeInitRspackVersion()
   );
 });
 
