@@ -160,6 +160,19 @@ function replaceRequiredImportSource(
   );
 }
 
+function replaceRemoteRspackRelativeImportSources(source: string, version: string) {
+  return source.replace(
+    /\b(from\s*|import\s*)["'](\.\/[^"']+\.(?:mjs|js))["'];?/g,
+    (match, prefix: string, specifier: string) => {
+      try {
+        return `${prefix}${JSON.stringify(getRspackBrowserFileUrl(version, `dist/${specifier.slice(2)}`))};`;
+      } catch {
+        return match;
+      }
+    },
+  );
+}
+
 function hasImportSource(source: string, specifier: string) {
   return new RegExp(`from\\s*["']${escapeRegExp(specifier)}["'];?`).test(source);
 }
@@ -301,6 +314,7 @@ async function getRspackBrowserEntryUrls(version: string): Promise<RspackBrowser
       getJsdelivrEsmUrl("@rspack/lite-tapable", liteTapableVersion),
       "@rspack/lite-tapable import",
     );
+    rewrittenEntrySource = replaceRemoteRspackRelativeImportSources(rewrittenEntrySource, version);
 
     return {
       entryModuleUrl: createBlobModuleUrl(rewrittenEntrySource),
