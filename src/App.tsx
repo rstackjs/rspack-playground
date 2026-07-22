@@ -8,7 +8,8 @@ const App = () => {
   useEvent(
     "keydown",
     (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+      const isSaveKey = event.code === "KeyS" || event.key.toLowerCase() === "s";
+      if ((event.ctrlKey || event.metaKey) && !event.shiftKey && !event.altKey && isSaveKey) {
         event.preventDefault();
         event.stopPropagation();
       }
