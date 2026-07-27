@@ -1,5 +1,5 @@
 import ansis from "ansis";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { debounce } from "lodash-es";
 import { Check, Settings2, X } from "lucide-react";
 import type * as Monaco from "monaco-editor";
@@ -234,7 +234,8 @@ function OutputPanel({
 }
 
 function Editor() {
-  const [inputFiles, _setInputFiles] = useAtom(inputFilesAtom);
+  const inputFiles = useAtomValue(inputFilesAtom);
+  const setInputFiles = useSetAtom(inputFilesAtom);
   const [activeInputFile, setActiveInputFile] = useAtom(activeInputFileAtom);
   const [activeOutputFile, setActiveOutputFile] = useAtom(activeOutputFileAtom);
   const [enableDeps, setEnableDeps] = useAtom(enableDependenciesAtom);
@@ -277,8 +278,8 @@ function Editor() {
     handleBundle(inputFiles);
   }, []);
 
-  const setInputFiles = (files: SourceFile[]) => {
-    _setInputFiles(files);
+  const updateInputFiles = (files: SourceFile[]) => {
+    setInputFiles(files);
     debouncedHandleBundle(files);
   };
 
@@ -287,7 +288,7 @@ function Editor() {
       filename,
       text: "",
     };
-    setInputFiles([...inputFiles, newFile]);
+    updateInputFiles([...inputFiles, newFile]);
     setActiveInputFile(inputFiles.length);
   };
 
@@ -295,7 +296,7 @@ function Editor() {
     if (inputFiles.length <= 1) return;
 
     const newFiles = inputFiles.filter((_, i) => i !== index);
-    setInputFiles(newFiles);
+    updateInputFiles(newFiles);
 
     if (activeInputFile >= newFiles.length) {
       setActiveInputFile(newFiles.length - 1);
@@ -307,13 +308,13 @@ function Editor() {
   const handleInputFileRename = (index: number, newName: string) => {
     const newFiles = [...inputFiles];
     newFiles[index] = { ...newFiles[index], filename: newName };
-    setInputFiles(newFiles);
+    updateInputFiles(newFiles);
   };
 
   const handleInputContentChange = (index: number, content: string) => {
     const newFiles = [...inputFiles];
     newFiles[index] = { ...newFiles[index], text: content };
-    setInputFiles(newFiles);
+    updateInputFiles(newFiles);
   };
 
   const handleInputEditorMount = useCallback((editor: Monaco.editor.IStandaloneCodeEditor) => {

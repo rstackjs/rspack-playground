@@ -1,9 +1,10 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Clock, Download, RotateCcw, Share2 } from "lucide-react";
+import { Clock, Download, History, RotateCcw, Share2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import Github from "@/components/icon/Github";
 import Logo from "@/components/icon/Rspack";
+import HistoryDrawer from "@/components/HistoryDrawer";
 import { ModeToggle } from "@/components/ModeToggle";
 import Preview from "@/components/Preview";
 import {
@@ -88,6 +89,7 @@ export default function Header() {
   const downloadProject = useDownloadProject();
 
   const [selectedPreset, setSelectedPreset] = useState(presets[0].name);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const handleReset = () => {
     const preset = getPresetByName(selectedPreset);
@@ -227,6 +229,17 @@ export default function Header() {
               variant="ghost"
               size="icon"
               className={iconButtonClassName}
+              onClick={() => setHistoryOpen(true)}
+              title="View project history"
+              aria-label="View project history"
+            >
+              <History className="h-3.5 w-3.5" />
+              <span className="sr-only">History</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={iconButtonClassName}
               onClick={downloadProject}
               title="Download project (Source + Dist)"
               aria-label="Download project"
@@ -308,6 +321,7 @@ export default function Header() {
           </div>
         </div>
       </div>
+      <HistoryDrawer open={historyOpen} onOpenChange={setHistoryOpen} />
     </header>
   );
 }

@@ -1,5 +1,7 @@
 import { atom } from "jotai";
+import { toast } from "sonner";
 import { bundle } from "@/lib/bundle";
+import { saveHistory } from "@/lib/history";
 import type {
   RspackChunkGroupInfo,
   RspackChunkInfo,
@@ -60,6 +62,7 @@ export const bindingLoadingAtom = atom(false);
 export const isBundlingAtom = atom(false);
 export const latestBundleRequestIdAtom = atom(0);
 export const inputFilesAtom = atom<SourceFile[]>(getInitFiles());
+export const currentProjectIdAtom = atom<number | null>(null);
 export const bundleResultAtom = atom<BundleResult | null>(null);
 export const enableFormatCode = atom(true);
 
@@ -70,9 +73,14 @@ export const bundleActionAtom = atom(
     set,
     { files, versionOverride }: { files: SourceFile[]; versionOverride?: string },
   ) => {
+    if (files !== get(inputFilesAtom)) {
+      return;
+    }
+
     const requestId = get(latestBundleRequestIdAtom) + 1;
     set(latestBundleRequestIdAtom, requestId);
 
+    const projectId = get(currentProjectIdAtom);
     const targetVersion = versionOverride ?? (await get(rspackVersionAtom));
     const shouldLoadBinding = get(bindingLoadedAtom) !== targetVersion;
     const isLatestRequest = () => requestId === get(latestBundleRequestIdAtom);
@@ -92,6 +100,21 @@ export const bundleActionAtom = atom(
 
       if (shouldLoadBinding) {
         set(bindingLoadedAtom, targetVersion);
+      }
+
+      if (!isLatestRequest()) {
+        return;
+      }
+
+      const projectIdForSave = projectId === null ? get(currentProjectIdAtom) : projectId;
+      try {
+        const snapshot = await saveHistory(projectIdForSave, files, targetVersion);
+        if (get(currentProjectIdAtom) === projectIdForSave) {
+          set(currentProjectIdAtom, snapshot.id);
+        }
+      } catch (error) {
+        console.error("Failed to save project history:", error);
+        toast.error("Failed to save project history");
       }
 
       const activeOutputFile = get(activeOutputFileAtom);
