@@ -1,14 +1,15 @@
 import { atom } from "jotai";
+import { atomWithStorage, createJSONStorage } from "jotai/utils";
 import { toast } from "sonner";
 import { bundle } from "@/lib/bundle";
-import { saveHistory } from "@/lib/history";
+import { restoreHistory, saveHistory } from "@/lib/history";
 import type {
   RspackChunkGroupInfo,
   RspackChunkInfo,
   RspackModuleDeps,
 } from "@/lib/bundle/dependency";
 import { deserializeShareData } from "@/lib/share";
-import { activeOutputFileAtom } from "./editor";
+import { activeInputFileAtom, activeOutputFileAtom } from "./editor";
 import { getPresetFiles, PresetBasicLibrary } from "./presets";
 import { getSafeInitRspackVersion, rspackVersionAtom } from "./version";
 
@@ -56,48 +57,35 @@ function getInitFiles() {
   return getPresetFiles(PresetBasicLibrary, getSafeInitRspackVersion());
 }
 
+function areSourceFilesEqual(left: SourceFile[], right: SourceFile[]) {
+  return (
+    left.length === right.length &&
+    left.every(
+      (file, index) => file.filename === right[index]?.filename && file.text === right[index]?.text,
+    )
+  );
+}
+
 // Bundle
 export const bindingLoadedAtom = atom<string | null>(null);
 export const bindingLoadingAtom = atom(false);
 export const isBundlingAtom = atom(false);
 export const latestBundleRequestIdAtom = atom(0);
 export const inputFilesAtom = atom<SourceFile[]>(getInitFiles());
-const currentProjectIdStorageKey = "rspack-playground-current-project-id";
-
-function getStoredCurrentProjectId(): number | null {
-  try {
-    const storedProjectId = window.localStorage.getItem(currentProjectIdStorageKey);
-    if (!storedProjectId) {
-      return null;
-    }
-
-    const projectId = Number(storedProjectId);
-    return Number.isSafeInteger(projectId) && projectId > 0 ? projectId : null;
-  } catch {
-    return null;
-  }
-}
-
-function persistCurrentProjectId(projectId: number | null) {
-  try {
-    if (projectId === null) {
-      window.localStorage.removeItem(currentProjectIdStorageKey);
-    } else {
-      window.localStorage.setItem(currentProjectIdStorageKey, String(projectId));
-    }
-  } catch (error) {
-    console.warn("Failed to persist current project id:", error);
-  }
-}
-
-const currentProjectIdStateAtom = atom<number | null>(getStoredCurrentProjectId());
-export const currentProjectIdAtom = atom(
-  (get) => get(currentProjectIdStateAtom),
-  (_get, set, projectId: number | null) => {
-    set(currentProjectIdStateAtom, projectId);
-    persistCurrentProjectId(projectId);
-  },
+const currentProjectIdJsonStorage = createJSONStorage<number | null>();
+// Another tab must not switch this tab's active project without restoring its files.
+const currentProjectIdStorage = {
+  getItem: currentProjectIdJsonStorage.getItem,
+  setItem: currentProjectIdJsonStorage.setItem,
+  removeItem: currentProjectIdJsonStorage.removeItem,
+};
+export const currentProjectIdAtom = atomWithStorage<number | null>(
+  "rspack-playground-current-project-id",
+  null,
+  currentProjectIdStorage,
+  { getOnInit: true },
 );
+const projectInitializedAtom = atom(false);
 export const bundleResultAtom = atom<BundleResult | null>(null);
 export const enableFormatCode = atom(true);
 
@@ -179,3 +167,56 @@ export const bundleActionAtom = atom(
     }
   },
 );
+
+export const initializeProjectAtom = atom(null, async (get, set) => {
+  if (get(projectInitializedAtom)) {
+    return;
+  }
+  set(projectInitializedAtom, true);
+
+  let files = get(inputFilesAtom);
+  let versionOverride: string | undefined;
+  const projectId = get(currentProjectIdAtom);
+  const initialRequestId = get(latestBundleRequestIdAtom);
+  const hash = window.location.hash.slice(1);
+  const shareData = hash ? deserializeShareData(hash) : null;
+
+  if (projectId !== null) {
+    try {
+      const restored = await restoreHistory(projectId);
+      if (
+        get(latestBundleRequestIdAtom) !== initialRequestId ||
+        get(currentProjectIdAtom) !== projectId
+      ) {
+        return;
+      }
+
+      const shareDataMatchesProject =
+        !shareData ||
+        (shareData.rspackVersion === restored.rspackVersion &&
+          areSourceFilesEqual(shareData.inputFiles, restored.files));
+
+      if (shareDataMatchesProject) {
+        files = restored.files;
+        versionOverride = restored.rspackVersion;
+        set(activeInputFileAtom, 0);
+        set(inputFilesAtom, restored.files);
+        set(rspackVersionAtom, restored.rspackVersion);
+      } else {
+        set(currentProjectIdAtom, null);
+      }
+    } catch (error) {
+      if (
+        get(latestBundleRequestIdAtom) !== initialRequestId ||
+        get(currentProjectIdAtom) !== projectId
+      ) {
+        return;
+      }
+
+      console.warn("Failed to restore the persisted project; starting a new project:", error);
+      set(currentProjectIdAtom, null);
+    }
+  }
+
+  await set(bundleActionAtom, { files, versionOverride });
+});

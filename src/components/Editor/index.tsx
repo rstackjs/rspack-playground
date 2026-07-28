@@ -20,6 +20,7 @@ import {
   bindingLoadingAtom,
   bundleResultAtom,
   enableFormatCode,
+  initializeProjectAtom,
   inputFilesAtom,
 } from "@/store/bundler";
 import { activeInputFileAtom, activeOutputFileAtom, enableDependenciesAtom } from "@/store/editor";
@@ -242,6 +243,7 @@ function Editor() {
   const isLoadingBinding = useAtomValue(bindingLoadingAtom);
   const bundleResult = useAtomValue(bundleResultAtom);
   const handleBundle = useBundle();
+  const initializeProject = useSetAtom(initializeProjectAtom);
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const isMobile = useIsMobile();
 
@@ -273,10 +275,9 @@ function Editor() {
 
   const debouncedHandleBundle = useMemo(() => debounce(handleBundle, 300), [handleBundle]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: initialize bundle on mount
   useEffect(() => {
-    handleBundle(inputFiles);
-  }, []);
+    void initializeProject();
+  }, [initializeProject]);
 
   const updateInputFiles = (files: SourceFile[]) => {
     setInputFiles(files);
