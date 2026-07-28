@@ -91,7 +91,7 @@ function getSnapshotMetadata(record: StoredHistorySnapshot): HistorySnapshot {
 }
 
 export async function listHistory(): Promise<HistorySnapshot[]> {
-  const records = await database.history.orderBy("updatedAt").reverse().toArray();
+  const records = await database.history.orderBy("createdAt").reverse().toArray();
   return records.map(getSnapshotMetadata);
 }
 
