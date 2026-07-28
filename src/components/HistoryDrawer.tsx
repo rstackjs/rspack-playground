@@ -1,5 +1,15 @@
 import { useAtomValue, useSetAtom } from "jotai";
-import { Check, History, LoaderCircle, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
+import {
+  Check,
+  Copy,
+  History,
+  LoaderCircle,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -24,6 +34,7 @@ import useBundle from "@/hooks/use-bundle";
 import { getShareUrl } from "@/lib/share";
 import {
   deleteHistory,
+  duplicateHistory,
   historyObservable,
   renameHistory,
   restoreHistory,
@@ -131,6 +142,33 @@ export default function HistoryDrawer({ open, onOpenChange }: HistoryDrawerProps
     }
   };
 
+  const handleCopy = async (snapshot: HistorySnapshot) => {
+    setBusyId(snapshot.id);
+    try {
+      const copiedSnapshot = await duplicateHistory(snapshot.id);
+      const copiedProject = await restoreHistory(copiedSnapshot.id);
+      setInputFiles(copiedProject.files);
+      setCurrentProjectId(copiedSnapshot.id);
+      setRspackVersion(copiedProject.rspackVersion);
+      window.history.replaceState(
+        null,
+        "",
+        getShareUrl({
+          rspackVersion: copiedProject.rspackVersion,
+          inputFiles: copiedProject.files,
+        }),
+      );
+      await handleBundle(copiedProject.files, copiedProject.rspackVersion);
+      toast.success("Project copied to a new project");
+      onOpenChange(false);
+    } catch (copyError) {
+      console.error("Failed to copy project history:", copyError);
+      toast.error("Failed to copy project history");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const handleStartNewProject = async () => {
     if (busyId !== null || isStartingNewProject) {
       return;
@@ -193,7 +231,9 @@ export default function HistoryDrawer({ open, onOpenChange }: HistoryDrawerProps
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <DrawerTitle>Project History</DrawerTitle>
-                <DrawerDescription>Restore or remove saved project snapshots.</DrawerDescription>
+                <DrawerDescription>
+                  Restore, copy, or remove saved project snapshots.
+                </DrawerDescription>
               </div>
               <Button
                 variant="outline"
@@ -326,58 +366,75 @@ export default function HistoryDrawer({ open, onOpenChange }: HistoryDrawerProps
                             Rspack v{snapshot.rspackVersion} · {snapshot.fileCount} files
                           </p>
                         </div>
-                        <Popover
-                          open={snapshotToDelete?.id === snapshot.id}
-                          onOpenChange={(nextOpen) => {
-                            if (busyId === null) {
-                              setSnapshotToDelete(nextOpen ? snapshot : null);
-                            }
-                          }}
-                        >
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="size-7 shrink-0 text-muted-foreground hover:text-destructive"
-                              disabled={busyId !== null}
-                              title="Delete history entry"
-                              aria-label={`Delete snapshot from ${formatSnapshotDate(snapshot.updatedAt)}`}
-                            >
-                              <Trash2 className="size-3.5" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent
-                            align="end"
-                            className="pointer-events-auto z-[60] w-64 p-3"
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7 text-muted-foreground"
+                            disabled={busyId !== null || isStartingNewProject}
+                            onClick={() => void handleCopy(snapshot)}
+                            title="Copy as a new project"
+                            aria-label={`Copy ${snapshot.title} as a new project`}
                           >
-                            <PopoverHeader>
-                              <PopoverTitle>Delete history entry?</PopoverTitle>
-                              <PopoverDescription>
-                                This snapshot will be permanently removed from this browser.
-                              </PopoverDescription>
-                            </PopoverHeader>
-                            <PopoverFooter className="mt-3">
+                            {isBusy ? (
+                              <LoaderCircle className="size-3.5 animate-spin" />
+                            ) : (
+                              <Copy className="size-3.5" />
+                            )}
+                          </Button>
+                          <Popover
+                            open={snapshotToDelete?.id === snapshot.id}
+                            onOpenChange={(nextOpen) => {
+                              if (busyId === null) {
+                                setSnapshotToDelete(nextOpen ? snapshot : null);
+                              }
+                            }}
+                          >
+                            <PopoverTrigger asChild>
                               <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setSnapshotToDelete(null)}
+                                variant="ghost"
+                                size="icon"
+                                className="size-7 text-muted-foreground hover:text-destructive"
                                 disabled={busyId !== null}
+                                title="Delete history entry"
+                                aria-label={`Delete snapshot from ${formatSnapshotDate(snapshot.updatedAt)}`}
                               >
-                                Cancel
+                                <Trash2 className="size-3.5" />
                               </Button>
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onPointerDown={(event) => event.stopPropagation()}
-                                onClick={() => void handleDelete(snapshot)}
-                                disabled={busyId !== null}
-                              >
-                                {isBusy && <LoaderCircle className="size-3.5 animate-spin" />}
-                                Delete
-                              </Button>
-                            </PopoverFooter>
-                          </PopoverContent>
-                        </Popover>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              align="end"
+                              className="pointer-events-auto z-[60] w-64 p-3"
+                            >
+                              <PopoverHeader>
+                                <PopoverTitle>Delete history entry?</PopoverTitle>
+                                <PopoverDescription>
+                                  This snapshot will be permanently removed from this browser.
+                                </PopoverDescription>
+                              </PopoverHeader>
+                              <PopoverFooter className="mt-3">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setSnapshotToDelete(null)}
+                                  disabled={busyId !== null}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onPointerDown={(event) => event.stopPropagation()}
+                                  onClick={() => void handleDelete(snapshot)}
+                                  disabled={busyId !== null}
+                                >
+                                  {isBusy && <LoaderCircle className="size-3.5 animate-spin" />}
+                                  Delete
+                                </Button>
+                              </PopoverFooter>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
                       </div>
                       <Button
                         variant="outline"

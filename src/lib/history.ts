@@ -216,6 +216,33 @@ export async function deleteHistory(id: number): Promise<void> {
   await database.history.delete(id);
 }
 
+export async function duplicateHistory(id: number): Promise<HistorySnapshot> {
+  const record = await database.history.get(id);
+  if (!record) {
+    throw new Error("History snapshot not found");
+  }
+
+  const timestamp = Date.now();
+  const title = `Copy of ${record.title ?? defaultProjectTitle}`;
+  const newId = await database.history.add({
+    archive: record.archive,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    title,
+    rspackVersion: record.rspackVersion,
+    fileCount: record.fileCount,
+  });
+
+  return {
+    id: newId,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    title,
+    rspackVersion: record.rspackVersion,
+    fileCount: record.fileCount,
+  };
+}
+
 export async function renameHistory(id: number, title: string): Promise<void> {
   const trimmedTitle = title.trim();
   if (!trimmedTitle) {
