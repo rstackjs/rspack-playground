@@ -62,7 +62,42 @@ export const bindingLoadingAtom = atom(false);
 export const isBundlingAtom = atom(false);
 export const latestBundleRequestIdAtom = atom(0);
 export const inputFilesAtom = atom<SourceFile[]>(getInitFiles());
-export const currentProjectIdAtom = atom<number | null>(null);
+const currentProjectIdStorageKey = "rspack-playground-current-project-id";
+
+function getStoredCurrentProjectId(): number | null {
+  try {
+    const storedProjectId = window.localStorage.getItem(currentProjectIdStorageKey);
+    if (!storedProjectId) {
+      return null;
+    }
+
+    const projectId = Number(storedProjectId);
+    return Number.isSafeInteger(projectId) && projectId > 0 ? projectId : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistCurrentProjectId(projectId: number | null) {
+  try {
+    if (projectId === null) {
+      window.localStorage.removeItem(currentProjectIdStorageKey);
+    } else {
+      window.localStorage.setItem(currentProjectIdStorageKey, String(projectId));
+    }
+  } catch (error) {
+    console.warn("Failed to persist current project id:", error);
+  }
+}
+
+const currentProjectIdStateAtom = atom<number | null>(getStoredCurrentProjectId());
+export const currentProjectIdAtom = atom(
+  (get) => get(currentProjectIdStateAtom),
+  (_get, set, projectId: number | null) => {
+    set(currentProjectIdStateAtom, projectId);
+    persistCurrentProjectId(projectId);
+  },
+);
 export const bundleResultAtom = atom<BundleResult | null>(null);
 export const enableFormatCode = atom(true);
 
@@ -90,6 +125,7 @@ export const bundleActionAtom = atom(
       set(bindingLoadingAtom, true);
     }
 
+    let bundleResultPublished = false;
     try {
       const result = await bundle(files, targetVersion);
       if (!isLatestRequest()) {
@@ -106,15 +142,22 @@ export const bundleActionAtom = atom(
         return;
       }
 
-      const projectIdForSave = projectId === null ? get(currentProjectIdAtom) : projectId;
-      try {
-        const snapshot = await saveHistory(projectIdForSave, files, targetVersion);
-        if (get(currentProjectIdAtom) === projectIdForSave) {
-          set(currentProjectIdAtom, snapshot.id);
+      set(bindingLoadingAtom, false);
+      set(isBundlingAtom, false);
+      bundleResultPublished = true;
+
+      const liveProjectId = get(currentProjectIdAtom);
+      if (projectId === null || liveProjectId === projectId) {
+        const projectIdForSave = projectId === null ? liveProjectId : projectId;
+        try {
+          const snapshot = await saveHistory(projectIdForSave, files, targetVersion);
+          if (get(currentProjectIdAtom) === projectIdForSave) {
+            set(currentProjectIdAtom, snapshot.id);
+          }
+        } catch (error) {
+          console.error("Failed to save project history:", error);
+          toast.error("Failed to save project history");
         }
-      } catch (error) {
-        console.error("Failed to save project history:", error);
-        toast.error("Failed to save project history");
       }
 
       const activeOutputFile = get(activeOutputFileAtom);
@@ -129,7 +172,7 @@ export const bundleActionAtom = atom(
       const message = error instanceof Error ? error.message : "Failed to load rspack binding";
       set(bundleResultAtom, createBundleFailure(message));
     } finally {
-      if (isLatestRequest()) {
+      if (isLatestRequest() && !bundleResultPublished) {
         set(bindingLoadingAtom, false);
         set(isBundlingAtom, false);
       }

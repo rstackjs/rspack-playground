@@ -62,17 +62,33 @@ class HistoryDatabase extends Dexie {
 
 const database = new HistoryDatabase();
 let pendingProjectCreation: Promise<HistorySnapshot> | null = null;
+let historyOperationTail = Promise.resolve();
+
+function enqueueHistoryOperation<T>(operation: () => Promise<T>): Promise<T> {
+  const previousOperation = historyOperationTail;
+  let release!: () => void;
+  historyOperationTail = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+
+  return previousOperation.then(operation).finally(release);
+}
 
 async function createArchive(files: SourceFile[]) {
   const blobWriter = new BlobWriter("application/zip");
   const zipWriter = new ZipWriter(blobWriter);
 
-  for (const file of files) {
-    await zipWriter.add(file.filename, new TextReader(file.text));
-  }
+  try {
+    for (const file of files) {
+      await zipWriter.add(file.filename, new TextReader(file.text));
+    }
 
-  await zipWriter.close();
-  return blobWriter.getData();
+    await zipWriter.close();
+    return blobWriter.getData();
+  } catch (error) {
+    await zipWriter.close().catch(() => {});
+    throw error;
+  }
 }
 
 function getSnapshotMetadata(record: StoredHistorySnapshot): HistorySnapshot {
@@ -108,7 +124,7 @@ export async function saveHistory(
       return saveHistory(snapshot.id, files, rspackVersion);
     }
 
-    const creation = createProjectRecord(files, rspackVersion);
+    const creation = enqueueHistoryOperation(() => createProjectRecord(files, rspackVersion));
     pendingProjectCreation = creation;
     try {
       const snapshot = await creation;
@@ -120,6 +136,14 @@ export async function saveHistory(
     }
   }
 
+  return enqueueHistoryOperation(() => saveExistingProject(projectId, files, rspackVersion));
+}
+
+async function saveExistingProject(
+  projectId: number,
+  files: SourceFile[],
+  rspackVersion: string,
+): Promise<HistorySnapshot> {
   const archive = await createArchive(files);
   const updatedAt = Date.now();
   const existing = await database.history.get(projectId);
@@ -213,34 +237,36 @@ export async function restoreHistory(
 }
 
 export async function deleteHistory(id: number): Promise<void> {
-  await database.history.delete(id);
+  await enqueueHistoryOperation(() => database.history.delete(id).then(() => undefined));
 }
 
 export async function duplicateHistory(id: number): Promise<HistorySnapshot> {
-  const record = await database.history.get(id);
-  if (!record) {
-    throw new Error("History snapshot not found");
-  }
+  return enqueueHistoryOperation(async () => {
+    const record = await database.history.get(id);
+    if (!record) {
+      throw new Error("History snapshot not found");
+    }
 
-  const timestamp = Date.now();
-  const title = `Copy of ${record.title ?? defaultProjectTitle}`;
-  const newId = await database.history.add({
-    archive: record.archive,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    title,
-    rspackVersion: record.rspackVersion,
-    fileCount: record.fileCount,
+    const timestamp = Date.now();
+    const title = `Copy of ${record.title ?? defaultProjectTitle}`;
+    const newId = await database.history.add({
+      archive: record.archive,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      title,
+      rspackVersion: record.rspackVersion,
+      fileCount: record.fileCount,
+    });
+
+    return {
+      id: newId,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      title,
+      rspackVersion: record.rspackVersion,
+      fileCount: record.fileCount,
+    };
   });
-
-  return {
-    id: newId,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    title,
-    rspackVersion: record.rspackVersion,
-    fileCount: record.fileCount,
-  };
 }
 
 export async function renameHistory(id: number, title: string): Promise<void> {
@@ -249,8 +275,10 @@ export async function renameHistory(id: number, title: string): Promise<void> {
     throw new Error("Project title cannot be empty");
   }
 
-  const updated = await database.history.update(id, { title: trimmedTitle });
-  if (updated === 0) {
-    throw new Error("History snapshot not found");
-  }
+  await enqueueHistoryOperation(async () => {
+    const updated = await database.history.update(id, { title: trimmedTitle });
+    if (updated === 0) {
+      throw new Error("History snapshot not found");
+    }
+  });
 }
