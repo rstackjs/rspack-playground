@@ -86,6 +86,7 @@ export const currentProjectIdAtom = atomWithStorage<number | null>(
   { getOnInit: true },
 );
 const projectInitializedAtom = atom(false);
+export const projectInitializingAtom = atom(true);
 export const bundleResultAtom = atom<BundleResult | null>(null);
 export const enableFormatCode = atom(true);
 
@@ -174,49 +175,53 @@ export const initializeProjectAtom = atom(null, async (get, set) => {
   }
   set(projectInitializedAtom, true);
 
-  let files = get(inputFilesAtom);
-  let versionOverride: string | undefined;
-  const projectId = get(currentProjectIdAtom);
-  const initialRequestId = get(latestBundleRequestIdAtom);
-  const hash = window.location.hash.slice(1);
-  const shareData = hash ? deserializeShareData(hash) : null;
+  try {
+    let files = get(inputFilesAtom);
+    let versionOverride: string | undefined;
+    const projectId = get(currentProjectIdAtom);
+    const initialRequestId = get(latestBundleRequestIdAtom);
+    const hash = window.location.hash.slice(1);
+    const shareData = hash ? deserializeShareData(hash) : null;
 
-  if (projectId !== null) {
-    try {
-      const restored = await restoreHistory(projectId);
-      if (
-        get(latestBundleRequestIdAtom) !== initialRequestId ||
-        get(currentProjectIdAtom) !== projectId
-      ) {
-        return;
-      }
+    if (projectId !== null) {
+      try {
+        const restored = await restoreHistory(projectId);
+        if (
+          get(latestBundleRequestIdAtom) !== initialRequestId ||
+          get(currentProjectIdAtom) !== projectId
+        ) {
+          return;
+        }
 
-      const shareDataMatchesProject =
-        !shareData ||
-        (shareData.rspackVersion === restored.rspackVersion &&
-          areSourceFilesEqual(shareData.inputFiles, restored.files));
+        const shareDataMatchesProject =
+          !shareData ||
+          (shareData.rspackVersion === restored.rspackVersion &&
+            areSourceFilesEqual(shareData.inputFiles, restored.files));
 
-      if (shareDataMatchesProject) {
-        files = restored.files;
-        versionOverride = restored.rspackVersion;
-        set(activeInputFileAtom, 0);
-        set(inputFilesAtom, restored.files);
-        set(rspackVersionAtom, restored.rspackVersion);
-      } else {
+        if (shareDataMatchesProject) {
+          files = restored.files;
+          versionOverride = restored.rspackVersion;
+          set(activeInputFileAtom, 0);
+          set(inputFilesAtom, restored.files);
+          set(rspackVersionAtom, restored.rspackVersion);
+        } else {
+          set(currentProjectIdAtom, null);
+        }
+      } catch (error) {
+        if (
+          get(latestBundleRequestIdAtom) !== initialRequestId ||
+          get(currentProjectIdAtom) !== projectId
+        ) {
+          return;
+        }
+
+        console.warn("Failed to restore the persisted project; starting a new project:", error);
         set(currentProjectIdAtom, null);
       }
-    } catch (error) {
-      if (
-        get(latestBundleRequestIdAtom) !== initialRequestId ||
-        get(currentProjectIdAtom) !== projectId
-      ) {
-        return;
-      }
-
-      console.warn("Failed to restore the persisted project; starting a new project:", error);
-      set(currentProjectIdAtom, null);
     }
-  }
 
-  await set(bundleActionAtom, { files, versionOverride });
+    await set(bundleActionAtom, { files, versionOverride });
+  } finally {
+    set(projectInitializingAtom, false);
+  }
 });

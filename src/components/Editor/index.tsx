@@ -22,12 +22,14 @@ import {
   enableFormatCode,
   initializeProjectAtom,
   inputFilesAtom,
+  projectInitializingAtom,
 } from "@/store/bundler";
 import { activeInputFileAtom, activeOutputFileAtom, enableDependenciesAtom } from "@/store/editor";
 
 interface InputPanelProps {
   inputFiles: SourceFile[];
   activeInputFile: number;
+  readonly: boolean;
   setActiveInputFile: (index: number) => void;
   handleInputFileCreate: (filename: string) => void;
   handleInputFileDelete: (index: number) => void;
@@ -40,6 +42,7 @@ interface InputPanelProps {
 function InputPanel({
   inputFiles,
   activeInputFile,
+  readonly,
   setActiveInputFile,
   handleInputFileCreate,
   handleInputFileDelete,
@@ -61,6 +64,7 @@ function InputPanel({
             onFileRename={handleInputFileRename}
             onContentChange={handleInputContentChange}
             onEditorMount={onEditorMount}
+            readonly={readonly}
           />
         </div>
       </div>
@@ -241,6 +245,7 @@ function Editor() {
   const [activeOutputFile, setActiveOutputFile] = useAtom(activeOutputFileAtom);
   const [enableDeps, setEnableDeps] = useAtom(enableDependenciesAtom);
   const isLoadingBinding = useAtomValue(bindingLoadingAtom);
+  const isProjectInitializing = useAtomValue(projectInitializingAtom);
   const bundleResult = useAtomValue(bundleResultAtom);
   const handleBundle = useBundle();
   const initializeProject = useSetAtom(initializeProjectAtom);
@@ -356,6 +361,7 @@ function Editor() {
             <InputPanel
               inputFiles={inputFiles}
               activeInputFile={activeInputFile}
+              readonly={isProjectInitializing}
               setActiveInputFile={setActiveInputFile}
               handleInputFileCreate={handleInputFileCreate}
               handleInputFileDelete={handleInputFileDelete}
@@ -386,6 +392,7 @@ function Editor() {
             <InputPanel
               inputFiles={inputFiles}
               activeInputFile={activeInputFile}
+              readonly={isProjectInitializing}
               setActiveInputFile={setActiveInputFile}
               handleInputFileCreate={handleInputFileCreate}
               handleInputFileDelete={handleInputFileDelete}

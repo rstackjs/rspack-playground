@@ -42,6 +42,7 @@ import {
 } from "@/lib/history";
 import { currentProjectIdAtom, inputFilesAtom, latestBundleRequestIdAtom } from "@/store/bundler";
 import { activeInputFileAtom } from "@/store/editor";
+import { getPresetFiles, PresetBasicLibrary } from "@/store/presets";
 import { rspackVersionAtom } from "@/store/version";
 
 interface HistoryDrawerProps {
@@ -69,7 +70,6 @@ export default function HistoryDrawer({ open, onOpenChange }: HistoryDrawerProps
   const [editingTitle, setEditingTitle] = useState("");
   const [titleError, setTitleError] = useState<string | null>(null);
   const [isStartingNewProject, setIsStartingNewProject] = useState(false);
-  const inputFiles = useAtomValue(inputFilesAtom);
   const setInputFiles = useSetAtom(inputFilesAtom);
   const setActiveInputFile = useSetAtom(activeInputFileAtom);
   const currentProjectId = useAtomValue(currentProjectIdAtom);
@@ -190,11 +190,15 @@ export default function HistoryDrawer({ open, onOpenChange }: HistoryDrawerProps
     }
 
     setIsStartingNewProject(true);
+    const files = getPresetFiles(PresetBasicLibrary, rspackVersion);
     setCurrentProjectId(null);
+    setActiveInputFile(0);
+    setInputFiles(files);
     setSnapshotToDelete(null);
     setEditingSnapshotId(null);
+    window.history.replaceState(null, "", window.location.pathname);
     try {
-      await handleBundle(inputFiles, rspackVersion);
+      await handleBundle(files, rspackVersion);
       onOpenChange(false);
     } catch (bundleError) {
       console.error("Failed to start a new project:", bundleError);
