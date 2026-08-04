@@ -87,6 +87,8 @@ export const currentProjectIdAtom = atomWithStorage<number | null>(
 );
 const projectInitializedAtom = atom(false);
 export const projectInitializingAtom = atom(true);
+const historyPersistenceCountAtom = atom(0);
+export const isPersistingHistoryAtom = atom((get) => get(historyPersistenceCountAtom) > 0);
 export const bundleResultAtom = atom<BundleResult | null>(null);
 export const enableFormatCode = atom(true);
 
@@ -135,9 +137,15 @@ export const bundleActionAtom = atom(
       set(isBundlingAtom, false);
       bundleResultPublished = true;
 
+      const activeOutputFile = get(activeOutputFileAtom);
+      if (activeOutputFile >= result.output.length) {
+        set(activeOutputFileAtom, 0);
+      }
+
       const liveProjectId = get(currentProjectIdAtom);
       if (projectId === null || liveProjectId === projectId) {
         const projectIdForSave = projectId === null ? liveProjectId : projectId;
+        set(historyPersistenceCountAtom, (value) => value + 1);
         try {
           const snapshot = await saveHistory(projectIdForSave, files, targetVersion);
           if (get(currentProjectIdAtom) === projectIdForSave) {
@@ -146,12 +154,9 @@ export const bundleActionAtom = atom(
         } catch (error) {
           console.error("Failed to save project history:", error);
           toast.error("Failed to save project history");
+        } finally {
+          set(historyPersistenceCountAtom, (value) => Math.max(0, value - 1));
         }
-      }
-
-      const activeOutputFile = get(activeOutputFileAtom);
-      if (result.output.length > 0 && activeOutputFile >= result.output.length) {
-        set(activeOutputFileAtom, 0);
       }
     } catch (error) {
       if (!isLatestRequest()) {

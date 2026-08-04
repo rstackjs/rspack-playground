@@ -37,6 +37,7 @@ import {
   currentProjectIdAtom,
   inputFilesAtom,
   isBundlingAtom,
+  isPersistingHistoryAtom,
   projectInitializingAtom,
 } from "@/store/bundler";
 import { activeInputFileAtom } from "@/store/editor";
@@ -90,6 +91,7 @@ export default function Header() {
   const selectedVersionDisplay = getVersionDisplay(rspackVersion);
   const [bundleResult] = useAtom(bundleResultAtom);
   const [isBundling] = useAtom(isBundlingAtom);
+  const isPersistingHistory = useAtomValue(isPersistingHistoryAtom);
   const isProjectInitializing = useAtomValue(projectInitializingAtom);
   const [inputFiles] = useAtom(inputFilesAtom);
   const setInputFiles = useSetAtom(inputFilesAtom);
@@ -249,7 +251,7 @@ export default function Header() {
               size="icon"
               className={iconButtonClassName}
               onClick={handleStartNewProject}
-              disabled={isBundling || isProjectInitializing}
+              disabled={isBundling || isProjectInitializing || isPersistingHistory}
               title="Start a new project"
               aria-label="Start a new project"
             >

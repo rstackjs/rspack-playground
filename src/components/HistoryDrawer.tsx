@@ -40,7 +40,12 @@ import {
   restoreHistory,
   type HistorySnapshot,
 } from "@/lib/history";
-import { currentProjectIdAtom, inputFilesAtom, latestBundleRequestIdAtom } from "@/store/bundler";
+import {
+  currentProjectIdAtom,
+  inputFilesAtom,
+  isPersistingHistoryAtom,
+  latestBundleRequestIdAtom,
+} from "@/store/bundler";
 import { activeInputFileAtom } from "@/store/editor";
 import { getPresetFiles, PresetBasicLibrary } from "@/store/presets";
 import { rspackVersionAtom } from "@/store/version";
@@ -75,6 +80,7 @@ export default function HistoryDrawer({ open, onOpenChange }: HistoryDrawerProps
   const currentProjectId = useAtomValue(currentProjectIdAtom);
   const setCurrentProjectId = useSetAtom(currentProjectIdAtom);
   const setLatestBundleRequestId = useSetAtom(latestBundleRequestIdAtom);
+  const isPersistingHistory = useAtomValue(isPersistingHistoryAtom);
   const rspackVersion = useAtomValue(rspackVersionAtom);
   const setRspackVersion = useSetAtom(rspackVersionAtom);
   const handleBundle = useBundle();
@@ -130,7 +136,7 @@ export default function HistoryDrawer({ open, onOpenChange }: HistoryDrawerProps
   };
 
   const handleDelete = async (snapshot: HistorySnapshot) => {
-    if (busyId !== null || isStartingNewProject) {
+    if (busyId !== null || isStartingNewProject || isPersistingHistory) {
       return;
     }
 
@@ -185,7 +191,7 @@ export default function HistoryDrawer({ open, onOpenChange }: HistoryDrawerProps
   };
 
   const handleStartNewProject = async () => {
-    if (busyId !== null || isStartingNewProject) {
+    if (busyId !== null || isStartingNewProject || isPersistingHistory) {
       return;
     }
 
@@ -258,7 +264,7 @@ export default function HistoryDrawer({ open, onOpenChange }: HistoryDrawerProps
               size="icon"
               className="size-7 shrink-0"
               onClick={() => void handleStartNewProject()}
-              disabled={busyId !== null || isStartingNewProject}
+              disabled={busyId !== null || isStartingNewProject || isPersistingHistory}
               title="Start a new project"
               aria-label="Start a new project"
             >
