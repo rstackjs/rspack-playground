@@ -1,9 +1,10 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Clock, Download, RotateCcw, Share2 } from "lucide-react";
+import { Clock, Download, Eraser, History, RotateCcw, Share2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import Github from "@/components/icon/Github";
 import Logo from "@/components/icon/Rspack";
+import HistoryDrawer from "@/components/HistoryDrawer";
 import { ModeToggle } from "@/components/ModeToggle";
 import Preview from "@/components/Preview";
 import {
@@ -31,8 +32,16 @@ import {
 import useBundle from "@/hooks/use-bundle";
 import { useDownloadProject } from "@/hooks/use-download";
 import { getShareUrl, type ShareData } from "@/lib/share";
-import { bundleResultAtom, inputFilesAtom, isBundlingAtom } from "@/store/bundler";
-import { getPresetByName, getPresetFiles, presets } from "@/store/presets";
+import {
+  bundleResultAtom,
+  currentProjectIdAtom,
+  inputFilesAtom,
+  isBundlingAtom,
+  isPersistingHistoryAtom,
+  projectInitializingAtom,
+} from "@/store/bundler";
+import { activeInputFileAtom } from "@/store/editor";
+import { getPresetByName, getPresetFiles, PresetBasicLibrary, presets } from "@/store/presets";
 import {
   deprecatedAvailableRspackVersionsAtom,
   enabledRspackVersionsAtom,
@@ -82,12 +91,26 @@ export default function Header() {
   const selectedVersionDisplay = getVersionDisplay(rspackVersion);
   const [bundleResult] = useAtom(bundleResultAtom);
   const [isBundling] = useAtom(isBundlingAtom);
+  const isPersistingHistory = useAtomValue(isPersistingHistoryAtom);
+  const isProjectInitializing = useAtomValue(projectInitializingAtom);
   const [inputFiles] = useAtom(inputFilesAtom);
   const setInputFiles = useSetAtom(inputFilesAtom);
+  const setActiveInputFile = useSetAtom(activeInputFileAtom);
+  const setCurrentProjectId = useSetAtom(currentProjectIdAtom);
   const handleBundle = useBundle();
   const downloadProject = useDownloadProject();
 
   const [selectedPreset, setSelectedPreset] = useState(presets[0].name);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  const handleStartNewProject = () => {
+    const files = getPresetFiles(PresetBasicLibrary, rspackVersion);
+    setCurrentProjectId(null);
+    setActiveInputFile(0);
+    setInputFiles(files);
+    window.history.replaceState(null, "", window.location.pathname);
+    void handleBundle(files, rspackVersion);
+  };
 
   const handleReset = () => {
     const preset = getPresetByName(selectedPreset);
@@ -227,6 +250,29 @@ export default function Header() {
               variant="ghost"
               size="icon"
               className={iconButtonClassName}
+              onClick={handleStartNewProject}
+              disabled={isBundling || isProjectInitializing || isPersistingHistory}
+              title="Start a new project"
+              aria-label="Start a new project"
+            >
+              <Eraser className="h-3.5 w-3.5" />
+              <span className="sr-only">New project</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={iconButtonClassName}
+              onClick={() => setHistoryOpen(true)}
+              title="View project history"
+              aria-label="View project history"
+            >
+              <History className="h-3.5 w-3.5" />
+              <span className="sr-only">History</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className={iconButtonClassName}
               onClick={downloadProject}
               title="Download project (Source + Dist)"
               aria-label="Download project"
@@ -308,6 +354,7 @@ export default function Header() {
           </div>
         </div>
       </div>
+      <HistoryDrawer open={historyOpen} onOpenChange={setHistoryOpen} />
     </header>
   );
 }

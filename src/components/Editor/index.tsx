@@ -1,5 +1,5 @@
 import ansis from "ansis";
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { debounce } from "lodash-es";
 import { Check, Settings2, X } from "lucide-react";
 import type * as Monaco from "monaco-editor";
@@ -20,13 +20,16 @@ import {
   bindingLoadingAtom,
   bundleResultAtom,
   enableFormatCode,
+  initializeProjectAtom,
   inputFilesAtom,
+  projectInitializingAtom,
 } from "@/store/bundler";
 import { activeInputFileAtom, activeOutputFileAtom, enableDependenciesAtom } from "@/store/editor";
 
 interface InputPanelProps {
   inputFiles: SourceFile[];
   activeInputFile: number;
+  readonly: boolean;
   setActiveInputFile: (index: number) => void;
   handleInputFileCreate: (filename: string) => void;
   handleInputFileDelete: (index: number) => void;
@@ -39,6 +42,7 @@ interface InputPanelProps {
 function InputPanel({
   inputFiles,
   activeInputFile,
+  readonly,
   setActiveInputFile,
   handleInputFileCreate,
   handleInputFileDelete,
@@ -60,6 +64,7 @@ function InputPanel({
             onFileRename={handleInputFileRename}
             onContentChange={handleInputContentChange}
             onEditorMount={onEditorMount}
+            readonly={readonly}
           />
         </div>
       </div>
@@ -234,13 +239,16 @@ function OutputPanel({
 }
 
 function Editor() {
-  const [inputFiles, _setInputFiles] = useAtom(inputFilesAtom);
+  const inputFiles = useAtomValue(inputFilesAtom);
+  const setInputFiles = useSetAtom(inputFilesAtom);
   const [activeInputFile, setActiveInputFile] = useAtom(activeInputFileAtom);
   const [activeOutputFile, setActiveOutputFile] = useAtom(activeOutputFileAtom);
   const [enableDeps, setEnableDeps] = useAtom(enableDependenciesAtom);
   const isLoadingBinding = useAtomValue(bindingLoadingAtom);
+  const isProjectInitializing = useAtomValue(projectInitializingAtom);
   const bundleResult = useAtomValue(bundleResultAtom);
   const handleBundle = useBundle();
+  const initializeProject = useSetAtom(initializeProjectAtom);
   const editorContainerRef = useRef<HTMLDivElement | null>(null);
   const isMobile = useIsMobile();
 
@@ -272,13 +280,12 @@ function Editor() {
 
   const debouncedHandleBundle = useMemo(() => debounce(handleBundle, 300), [handleBundle]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: initialize bundle on mount
   useEffect(() => {
-    handleBundle(inputFiles);
-  }, []);
+    void initializeProject();
+  }, [initializeProject]);
 
-  const setInputFiles = (files: SourceFile[]) => {
-    _setInputFiles(files);
+  const updateInputFiles = (files: SourceFile[]) => {
+    setInputFiles(files);
     debouncedHandleBundle(files);
   };
 
@@ -287,7 +294,7 @@ function Editor() {
       filename,
       text: "",
     };
-    setInputFiles([...inputFiles, newFile]);
+    updateInputFiles([...inputFiles, newFile]);
     setActiveInputFile(inputFiles.length);
   };
 
@@ -295,7 +302,7 @@ function Editor() {
     if (inputFiles.length <= 1) return;
 
     const newFiles = inputFiles.filter((_, i) => i !== index);
-    setInputFiles(newFiles);
+    updateInputFiles(newFiles);
 
     if (activeInputFile >= newFiles.length) {
       setActiveInputFile(newFiles.length - 1);
@@ -307,13 +314,13 @@ function Editor() {
   const handleInputFileRename = (index: number, newName: string) => {
     const newFiles = [...inputFiles];
     newFiles[index] = { ...newFiles[index], filename: newName };
-    setInputFiles(newFiles);
+    updateInputFiles(newFiles);
   };
 
   const handleInputContentChange = (index: number, content: string) => {
     const newFiles = [...inputFiles];
     newFiles[index] = { ...newFiles[index], text: content };
-    setInputFiles(newFiles);
+    updateInputFiles(newFiles);
   };
 
   const handleInputEditorMount = useCallback((editor: Monaco.editor.IStandaloneCodeEditor) => {
@@ -354,6 +361,7 @@ function Editor() {
             <InputPanel
               inputFiles={inputFiles}
               activeInputFile={activeInputFile}
+              readonly={isProjectInitializing}
               setActiveInputFile={setActiveInputFile}
               handleInputFileCreate={handleInputFileCreate}
               handleInputFileDelete={handleInputFileDelete}
@@ -384,6 +392,7 @@ function Editor() {
             <InputPanel
               inputFiles={inputFiles}
               activeInputFile={activeInputFile}
+              readonly={isProjectInitializing}
               setActiveInputFile={setActiveInputFile}
               handleInputFileCreate={handleInputFileCreate}
               handleInputFileDelete={handleInputFileDelete}
