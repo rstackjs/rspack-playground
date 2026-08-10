@@ -43,6 +43,7 @@ import {
 import {
   currentProjectIdAtom,
   inputFilesAtom,
+  isBundlingAtom,
   isPersistingHistoryAtom,
   latestBundleRequestIdAtom,
 } from "@/store/bundler";
@@ -80,6 +81,7 @@ export default function HistoryDrawer({ open, onOpenChange }: HistoryDrawerProps
   const currentProjectId = useAtomValue(currentProjectIdAtom);
   const setCurrentProjectId = useSetAtom(currentProjectIdAtom);
   const setLatestBundleRequestId = useSetAtom(latestBundleRequestIdAtom);
+  const isBundling = useAtomValue(isBundlingAtom);
   const isPersistingHistory = useAtomValue(isPersistingHistoryAtom);
   const rspackVersion = useAtomValue(rspackVersionAtom);
   const setRspackVersion = useSetAtom(rspackVersionAtom);
@@ -136,7 +138,7 @@ export default function HistoryDrawer({ open, onOpenChange }: HistoryDrawerProps
   };
 
   const handleDelete = async (snapshot: HistorySnapshot) => {
-    if (busyId !== null || isStartingNewProject || isPersistingHistory) {
+    if (busyId !== null || isStartingNewProject || isBundling || isPersistingHistory) {
       return;
     }
 
@@ -417,7 +419,12 @@ export default function HistoryDrawer({ open, onOpenChange }: HistoryDrawerProps
                               variant="ghost"
                               size="icon"
                               className="size-7 text-muted-foreground hover:text-destructive"
-                              disabled={busyId !== null || isStartingNewProject}
+                              disabled={
+                                busyId !== null ||
+                                isStartingNewProject ||
+                                isBundling ||
+                                isPersistingHistory
+                              }
                               title="Delete history entry"
                               aria-label={`Delete snapshot from ${formatSnapshotDate(snapshot.updatedAt)}`}
                             >
@@ -448,7 +455,12 @@ export default function HistoryDrawer({ open, onOpenChange }: HistoryDrawerProps
                                 size="sm"
                                 onPointerDown={(event) => event.stopPropagation()}
                                 onClick={() => void handleDelete(snapshot)}
-                                disabled={busyId !== null || isStartingNewProject}
+                                disabled={
+                                  busyId !== null ||
+                                  isStartingNewProject ||
+                                  isBundling ||
+                                  isPersistingHistory
+                                }
                               >
                                 {isBusy && <LoaderCircle className="size-3.5 animate-spin" />}
                                 Delete
