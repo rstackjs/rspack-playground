@@ -88,6 +88,10 @@ export default function CodeEditor({
     );
   }
 
+  // `path` identifies the Monaco model. Keep input and output models in separate
+  // namespaces so every file owns its view state and undo/redo history.
+  const modelPath = `rspack-playground://${readonly ? "output" : "input"}/${encodeURIComponent(currentFile.filename)}`;
+
   return (
     <div className="flex flex-col h-full">
       <FileTabs
@@ -103,6 +107,7 @@ export default function CodeEditor({
 
       <div className="flex-1 min-h-0">
         <MonacoEditor
+          path={modelPath}
           value={currentFile.text}
           language={getLanguage(currentFile.filename)}
           theme={resolvedTheme === "dark" ? "vs-dark" : "vs"}
