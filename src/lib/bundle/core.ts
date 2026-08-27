@@ -1,11 +1,37 @@
 import type { RspackOptions } from "@rspack/browser";
+import path from "path-browserify";
 import { format } from "@/lib/format";
 import { isCanaryRspackVersion } from "@/lib/rspack-version";
 import type { BundleResult, SourceFile } from "@/store/bundler";
 import { RSPACK_CONFIG } from "@/store/common";
+import {
+  loadConfigNodeBuiltinModules,
+  supportedConfigNodeBuiltinNames,
+} from "./config-node-builtins";
 import { DependenciesPlugin } from "./dependency";
 
 type RspackBrowserAPI = typeof import("@rspack/browser");
+// Configs run against a POSIX memfs rooted at `/`. Bind cwd-dependent path
+// operations to that root instead of relying on a browser-global `process`.
+const configPath = {
+  ...path,
+  resolve: (...pathSegments: string[]) => path.resolve("/", ...pathSegments),
+  relative: (from: string, to: string) =>
+    path.relative(path.resolve("/", from), path.resolve("/", to)),
+} as typeof path;
+Object.defineProperty(configPath, "posix", {
+  enumerable: true,
+  value: configPath,
+});
+
+const supportedConfigImports = [
+  "@rspack/core",
+  "@rspack/browser",
+  "fs",
+  "fs/promises",
+  ...supportedConfigNodeBuiltinNames,
+].join(", ");
+
 type RspackStats = {
   toJson: (options: { all: false; errors: true; warnings: false }) => {
     errors?: Array<{ message: string }>;
@@ -353,23 +379,40 @@ async function importRspackBrowser(version: string): Promise<RspackBrowserAPI> {
 }
 
 async function loadConfig(content: string, rspackAPI: RspackBrowserAPI): Promise<RspackOptions> {
-  function requireRspack(name: string) {
+  const cjsContent = await rspackAPI.experiments.swc.transform(content, {
+    module: { type: "commonjs" },
+  });
+  const configNodeBuiltinModules = await loadConfigNodeBuiltinModules(cjsContent.code);
+  configNodeBuiltinModules.set("path", configPath);
+  configNodeBuiltinModules.set("path/posix", configPath);
+
+  function requireConfigModule(name: string) {
     if (name === "@rspack/core" || name === "@rspack/browser") {
       return rspackAPI;
     }
-    throw new Error("Only support for importing '@rspack/core' or '@rspack/browser");
+
+    const builtinName = name.startsWith("node:") ? name.slice("node:".length) : name;
+    switch (builtinName) {
+      case "fs":
+        return rspackAPI.builtinMemFs.fs;
+      case "fs/promises":
+        return rspackAPI.builtinMemFs.fs.promises;
+      default:
+        if (configNodeBuiltinModules.has(builtinName)) {
+          return configNodeBuiltinModules.get(builtinName);
+        }
+        throw new Error(
+          `Unsupported import '${name}' in ${RSPACK_CONFIG}. Supported imports: ${supportedConfigImports} (Node builtins also accept the node: prefix)`,
+        );
+    }
   }
   const module: { exports: { default: RspackOptions } } = {
     exports: { default: {} },
   };
   const exports = module.exports;
 
-  const cjsContent = await rspackAPI.experiments.swc.transform(content, {
-    module: { type: "commonjs" },
-  });
-
   const wrapper = new Function("module", "exports", "require", cjsContent.code);
-  wrapper(module, exports, requireRspack);
+  wrapper(module, exports, requireConfigModule);
   return exports.default as RspackOptions;
 }
 
