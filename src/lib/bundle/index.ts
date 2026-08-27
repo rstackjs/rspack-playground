@@ -22,7 +22,7 @@ export async function bundle(files: SourceFile[], version: string): Promise<Bund
 
   const worker = new Worker(new URL("./worker.ts", import.meta.url), { type: "module" });
   const request: BundleWorkerRequest = {
-    files,
+    files: files.map(({ filename, text }) => ({ filename, text })),
     version,
   };
 

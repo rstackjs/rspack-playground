@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import type { SourceFile } from "@/store/bundler";
+import { getSourceFileIdentity, type SourceFile } from "@/store/bundler";
 
 interface FileTabsProps {
   files: SourceFile[];
@@ -76,7 +76,7 @@ export default function FileTabs({
         <div className="flex flex-1 overflow-x-auto scrollbar-thin">
           {files.map((file, index) => (
             <div
-              key={file.filename}
+              key={getSourceFileIdentity(file)}
               data-filename={file.filename}
               className={cn(
                 "group flex h-9 flex-shrink-0 items-center space-x-1.5 border-r px-3 text-sm cursor-pointer hover:bg-accent/50 transition-colors",

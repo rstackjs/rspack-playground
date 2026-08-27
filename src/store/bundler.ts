@@ -15,6 +15,28 @@ export interface SourceFile {
   text: string;
 }
 
+export interface EditorSourceFile extends SourceFile {
+  readonly editorId: string;
+}
+
+let nextEditorFileId = 0;
+
+export function createEditorSourceFile(file: SourceFile): EditorSourceFile {
+  return {
+    editorId: `input-${nextEditorFileId++}`,
+    filename: file.filename,
+    text: file.text,
+  };
+}
+
+export function createEditorSourceFiles(files: SourceFile[]): EditorSourceFile[] {
+  return files.map(createEditorSourceFile);
+}
+
+export function getSourceFileIdentity(file: SourceFile): string {
+  return "editorId" in file && typeof file.editorId === "string" ? file.editorId : file.filename;
+}
+
 export interface BundleResult {
   success: boolean;
   output: SourceFile[];
@@ -48,10 +70,10 @@ function getInitFiles() {
   if (hash) {
     const shareData = deserializeShareData(hash);
     if (shareData) {
-      return shareData.inputFiles;
+      return createEditorSourceFiles(shareData.inputFiles);
     }
   }
-  return getPresetFiles(PresetBasicLibrary, getSafeInitRspackVersion());
+  return createEditorSourceFiles(getPresetFiles(PresetBasicLibrary, getSafeInitRspackVersion()));
 }
 
 // Bundle
@@ -59,7 +81,7 @@ export const bindingLoadedAtom = atom<string | null>(null);
 export const bindingLoadingAtom = atom(false);
 export const isBundlingAtom = atom(false);
 export const latestBundleRequestIdAtom = atom(0);
-export const inputFilesAtom = atom<SourceFile[]>(getInitFiles());
+export const inputFilesAtom = atom<EditorSourceFile[]>(getInitFiles());
 export const bundleResultAtom = atom<BundleResult | null>(null);
 export const enableFormatCode = atom(true);
 
