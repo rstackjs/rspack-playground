@@ -3,7 +3,7 @@ import type * as Monaco from "monaco-editor";
 import type React from "react";
 import FileTabs from "@/components/Editor/FileTabs";
 import { useTheme } from "@/components/ThemeProvider";
-import type { SourceFile } from "@/store/bundler";
+import { getSourceFileIdentity, type SourceFile } from "@/store/bundler";
 
 interface CodeEditorProps {
   files: SourceFile[];
@@ -88,9 +88,9 @@ export default function CodeEditor({
     );
   }
 
-  // `path` identifies the Monaco model. Keep input and output models in separate
-  // namespaces so every file owns its view state and undo/redo history.
-  const modelPath = `rspack-playground://${readonly ? "output" : "input"}/${encodeURIComponent(currentFile.filename)}`;
+  // `path` identifies the Monaco model. Input files use an immutable identity so
+  // renaming only changes the displayed filename and preserves editor history.
+  const modelPath = `rspack-playground://${readonly ? "output" : "input"}/${encodeURIComponent(getSourceFileIdentity(currentFile))}`;
 
   return (
     <div className="flex flex-col h-full">

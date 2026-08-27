@@ -15,17 +15,18 @@ import useBundle from "@/hooks/use-bundle";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSegmentDecorations } from "@/hooks/useSegmentDecorations";
 import { useSourcemapHover } from "@/hooks/useSourcemapHover";
-import type { BundleResult, SourceFile } from "@/store/bundler";
+import type { BundleResult, EditorSourceFile } from "@/store/bundler";
 import {
   bindingLoadingAtom,
   bundleResultAtom,
+  createEditorSourceFile,
   enableFormatCode,
   inputFilesAtom,
 } from "@/store/bundler";
 import { activeInputFileAtom, activeOutputFileAtom, enableDependenciesAtom } from "@/store/editor";
 
 interface InputPanelProps {
-  inputFiles: SourceFile[];
+  inputFiles: EditorSourceFile[];
   activeInputFile: number;
   setActiveInputFile: (index: number) => void;
   handleInputFileCreate: (filename: string) => void;
@@ -277,16 +278,16 @@ function Editor() {
     handleBundle(inputFiles);
   }, []);
 
-  const setInputFiles = (files: SourceFile[]) => {
+  const setInputFiles = (files: EditorSourceFile[]) => {
     _setInputFiles(files);
     debouncedHandleBundle(files);
   };
 
   const handleInputFileCreate = (filename: string) => {
-    const newFile: SourceFile = {
+    const newFile = createEditorSourceFile({
       filename,
       text: "",
-    };
+    });
     setInputFiles([...inputFiles, newFile]);
     setActiveInputFile(inputFiles.length);
   };

@@ -31,7 +31,12 @@ import {
 import useBundle from "@/hooks/use-bundle";
 import { useDownloadProject } from "@/hooks/use-download";
 import { getShareUrl, type ShareData } from "@/lib/share";
-import { bundleResultAtom, inputFilesAtom, isBundlingAtom } from "@/store/bundler";
+import {
+  bundleResultAtom,
+  createEditorSourceFiles,
+  inputFilesAtom,
+  isBundlingAtom,
+} from "@/store/bundler";
 import { getPresetByName, getPresetFiles, presets } from "@/store/presets";
 import {
   deprecatedAvailableRspackVersionsAtom,
@@ -91,7 +96,7 @@ export default function Header() {
 
   const handleReset = () => {
     const preset = getPresetByName(selectedPreset);
-    const files = preset ? getPresetFiles(preset, rspackVersion) : [];
+    const files = createEditorSourceFiles(preset ? getPresetFiles(preset, rspackVersion) : []);
     setInputFiles(files);
     handleBundle(files);
     window.history.replaceState(null, "", window.location.pathname);

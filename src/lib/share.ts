@@ -8,7 +8,10 @@ export interface ShareData {
 // Share functionality
 // Use Unicode-safe base64 encoding to support Chinese and other non-Latin1 characters
 export const serializeShareData = (data: ShareData): string => {
-  const jsonString = JSON.stringify(data);
+  const jsonString = JSON.stringify({
+    rspackVersion: data.rspackVersion,
+    inputFiles: data.inputFiles.map(({ filename, text }) => ({ filename, text })),
+  });
   // Convert string to UTF-8 bytes, then to base64
   const utf8Bytes = new TextEncoder().encode(jsonString);
   const binaryString = Array.from(utf8Bytes, (byte) => String.fromCharCode(byte)).join("");
