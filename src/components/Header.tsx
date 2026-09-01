@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { Clock, Download, RotateCcw, Share2 } from "lucide-react";
+import { Clock, Copy, Download, ExternalLink, RotateCcw, Share2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import Github from "@/components/icon/Github";
@@ -19,6 +19,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Select,
   SelectContent,
   SelectGroup,
@@ -30,7 +38,13 @@ import {
 } from "@/components/ui/select";
 import useBundle from "@/hooks/use-bundle";
 import { useDownloadProject } from "@/hooks/use-download";
-import { getShareUrl, type ShareData } from "@/lib/share";
+import {
+  getEsbuildReplUrl,
+  getRollupReplUrl,
+  getShareUrl,
+  getWebpackReplUrl,
+  type ShareData,
+} from "@/lib/share";
 import {
   bundleResultAtom,
   createEditorSourceFiles,
@@ -71,6 +85,12 @@ function getVersionDisplay(version: string) {
     fullLabel: `v${version}`,
   };
 }
+
+const replLabels = {
+  webpack: "webpack REPL",
+  esbuild: "esbuild REPL",
+  rollup: "Rollup REPL",
+} as const;
 
 export default function Header() {
   const iconButtonClassName =
@@ -116,6 +136,25 @@ export default function Header() {
     } catch (error) {
       console.error("Failed to share:", error);
       toast.error("Failed to copy share link");
+    }
+  };
+
+  const handleOpenInRepl = (target: keyof typeof replLabels) => {
+    try {
+      const shareData: ShareData = {
+        rspackVersion,
+        inputFiles,
+      };
+      const replUrl = {
+        webpack: getWebpackReplUrl,
+        esbuild: getEsbuildReplUrl,
+        rollup: getRollupReplUrl,
+      }[target](shareData);
+
+      window.open(replUrl, "_blank", "noopener,noreferrer");
+    } catch (error) {
+      console.error(`Failed to open ${target} REPL:`, error);
+      toast.error(`Failed to open ${target} REPL`);
     }
   };
 
@@ -239,17 +278,35 @@ export default function Header() {
               <Download className="h-3.5 w-3.5" />
               <span className="sr-only">Download</span>
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className={iconButtonClassName}
-              onClick={handleShare}
-              title="Share current configuration"
-              aria-label="Share current configuration"
-            >
-              <Share2 className="h-3.5 w-3.5" />
-              <span className="sr-only">Share</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={iconButtonClassName}
+                  title="Share or open in another bundler"
+                  aria-label="Share or open in another bundler"
+                >
+                  <Share2 className="h-3.5 w-3.5" />
+                  <span className="sr-only">Share</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuLabel>Share</DropdownMenuLabel>
+                <DropdownMenuItem onClick={() => void handleShare()}>
+                  <Copy className="h-3.5 w-3.5" />
+                  Copy Rspack link
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Open project in</DropdownMenuLabel>
+                {(["webpack", "esbuild", "rollup"] as const).map((target) => (
+                  <DropdownMenuItem key={target} onClick={() => handleOpenInRepl(target)}>
+                    <span>{replLabels[target]}</span>
+                    <ExternalLink className="ml-auto h-3.5 w-3.5 text-muted-foreground" />
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
