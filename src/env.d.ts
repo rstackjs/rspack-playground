@@ -1,4 +1,4 @@
-/// <reference types="@rsbuild/core/types" />
+/// <reference types="rstack/types" />
 
 /**
  * Imports the SVG file as a React component.

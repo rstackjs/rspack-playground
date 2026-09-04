@@ -4,15 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "rsbuild build",
-    "build:sw": "rslib build",
-    "dev": "rsbuild dev --open",
-    "format": "oxfmt",
-    "format:check": "oxfmt --check .",
-    "lint": "rslint --fix .",
-    "lint:check": "rslint .",
-    "prepare": "simple-git-hooks",
-    "preview": "rsbuild preview"
+    "build": "rs build",
+    "build:sw": "rs lib",
+    "check": "rs check",
+    "dev": "rs dev --open",
+    "format": "rs fmt",
+    "lint": "rs lint",
+    "prepare": "rs hooks",
+    "preview": "rs preview"
   },
   "dependencies": {
     "@monaco-editor/react": "4.7.0",
@@ -56,31 +55,17 @@
     "util": "^0.12.5"
   },
   "devDependencies": {
-    "@rsbuild/core": "^2.0.15",
     "@rsbuild/plugin-react": "^2.1.0",
-    "@rslib/core": "^0.23.0",
-    "@rslint/core": "^0.6.2",
     "@rspack/browser": "2.0.8",
     "@tailwindcss/postcss": "^4.3.1",
     "@types/lodash-es": "^4.17.12",
     "@types/path-browserify": "^1.0.3",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
-    "lint-staged": "^17.0.8",
     "mime": "^4.1.0",
     "monaco-editor": "^0.55.1",
-    "oxfmt": "^0.55.0",
-    "simple-git-hooks": "^2.13.1",
+    "rstack": "^0.7.2",
     "tailwindcss": "^4.3.1",
     "typescript": "^6.0.3"
-  },
-  "simple-git-hooks": {
-    "pre-commit": "npx lint-staged"
-  },
-  "lint-staged": {
-    "**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}": [
-      "rslint --fix"
-    ],
-    "*": "oxfmt --write --no-error-on-unmatched-pattern"
   }
 }
