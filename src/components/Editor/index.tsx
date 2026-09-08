@@ -1,7 +1,7 @@
 import ansis from "ansis";
 import { useAtom, useAtomValue } from "jotai";
 import { debounce } from "lodash-es";
-import { Check, Settings2, X } from "lucide-react";
+import { Check, Code2, Layers, LoaderCircle, Settings2, X } from "lucide-react";
 import type * as Monaco from "monaco-editor";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
@@ -26,6 +26,7 @@ import {
 import { activeInputFileAtom, activeOutputFileAtom, enableDependenciesAtom } from "@/store/editor";
 
 interface InputPanelProps {
+  defaultSize?: number;
   inputFiles: EditorSourceFile[];
   activeInputFile: number;
   setActiveInputFile: (index: number) => void;
@@ -38,6 +39,7 @@ interface InputPanelProps {
 }
 
 function InputPanel({
+  defaultSize = 50,
   inputFiles,
   activeInputFile,
   setActiveInputFile,
@@ -49,8 +51,21 @@ function InputPanel({
   panelRef,
 }: InputPanelProps) {
   return (
-    <Panel id="input" defaultSize={50} minSize={20} className="min-h-0">
-      <div ref={panelRef} className="flex flex-col h-full">
+    <Panel id="input" order={0} defaultSize={defaultSize} minSize={20} className="workspace-panel">
+      <div ref={panelRef} className="flex h-full flex-col">
+        <div className="workspace-panel-heading">
+          <div className="flex items-center gap-2">
+            <Code2 className="size-3.5 text-muted-foreground" />
+            <h2>Source</h2>
+            <span className="ml-1 text-[10px] font-normal tabular-nums text-muted-foreground">
+              {inputFiles.length}
+            </span>
+          </div>
+          <span className="flex items-center gap-1.5 text-[10px] font-normal text-muted-foreground">
+            <span className="size-1 rounded-full bg-chart-2" />
+            Auto build
+          </span>
+        </div>
         <div className="flex-1 min-h-0">
           <CodeEditor
             files={inputFiles}
@@ -69,6 +84,7 @@ function InputPanel({
 }
 
 interface OutputPanelProps {
+  defaultSize?: number;
   bundleResult: BundleResult | null;
   activeOutputFile: number;
   isLoadingBinding: boolean;
@@ -82,6 +98,7 @@ interface OutputPanelProps {
 }
 
 function OutputPanel({
+  defaultSize = 50,
   bundleResult,
   activeOutputFile,
   isLoadingBinding,
@@ -122,7 +139,7 @@ function OutputPanel({
         <Settings2 className="size-3.5" />
       </Button>
       {showSettings && (
-        <div className="absolute top-full right-0 z-20 mt-2 w-56 rounded-lg border bg-background p-3 shadow-lg">
+        <div className="absolute top-full right-0 z-20 mt-2 w-56 rounded-lg border bg-popover p-3 shadow-xl">
           <div className="mb-3 flex items-center justify-between">
             <div className="text-sm font-medium">Output Settings</div>
             <Button
@@ -173,8 +190,18 @@ function OutputPanel({
   );
 
   return (
-    <Panel id="output" defaultSize={50} minSize={20} className="min-h-0">
-      <div ref={panelRef} className="flex flex-col h-full relative">
+    <Panel id="output" order={1} defaultSize={defaultSize} minSize={20} className="workspace-panel">
+      <div ref={panelRef} className="relative flex h-full flex-col">
+        <div className="workspace-panel-heading">
+          <div className="flex items-center gap-2">
+            <Layers className="size-3.5 text-muted-foreground" />
+            <h2>Output</h2>
+            <span className="ml-1 text-[10px] font-normal tabular-nums text-muted-foreground">
+              {bundleResult?.output.length ?? 0}
+            </span>
+          </div>
+          <span className="text-[10px] font-normal text-muted-foreground">Read only</span>
+        </div>
         <div className="flex-1 min-h-0">
           {bundleResult ? (
             <PanelGroup id="output-group" direction="vertical" className="h-full">
@@ -196,14 +223,14 @@ function OutputPanel({
                 <>
                   <PanelResizeHandle className="h-1 bg-border hover:bg-border/80" />
                   <Panel id="output-errors" order={1} minSize={0} maxSize={33.33}>
-                    <pre className="p-2 h-full overflow-y-auto text-wrap">
+                    <pre className="h-full overflow-y-auto whitespace-pre-wrap break-words p-4 font-mono text-[11px] leading-5">
                       {bundleResult.errors.map((err) => (
-                        <div key={err} className="text-red-500">
+                        <div key={err} className="text-destructive">
                           {ansis.strip(err)}
                         </div>
                       ))}
                       {bundleResult.warnings.map((warning) => (
-                        <div key={warning} className="text-orange-300">
+                        <div key={warning} className="text-chart-3">
                           {ansis.strip(warning)}
                         </div>
                       ))}
@@ -215,8 +242,8 @@ function OutputPanel({
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground">
               <div className="text-center">
-                <div className="text-lg mb-2">No output yet</div>
-                <div className="text-sm">Modify your code to see the bundled result</div>
+                <div className="mb-2 text-sm font-medium text-foreground">No output yet</div>
+                <div className="text-xs">Modify your code to see the bundled result</div>
               </div>
             </div>
           )}
@@ -224,8 +251,8 @@ function OutputPanel({
         {isLoadingBinding && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
             <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-              <div className="text-sm text-muted-foreground font-medium">Loading Binding...</div>
+              <LoaderCircle className="size-5 animate-spin text-muted-foreground" />
+              <div className="text-sm text-muted-foreground font-medium">Preparing compiler…</div>
             </div>
           </div>
         )}
@@ -327,27 +354,15 @@ function Editor() {
 
   const ResizeHandle = ({ isVertical }: { isVertical: boolean }) => (
     <PanelResizeHandle
-      className={`${
-        isVertical ? "h-1 bg-border hover:bg-border/80" : "w-1 bg-border hover:bg-border/80"
-      } transition-colors relative group`}
-    >
-      <div
-        className={`absolute bg-border group-hover:bg-border/80 transition-colors ${
-          isVertical ? "inset-x-0 top-1/2 h-0.5" : "inset-y-0 left-1/2 w-0.5"
-        }`}
-      />
-      <div
-        className={`absolute bg-border group-hover:bg-border/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity ${
-          isVertical
-            ? "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-1"
-            : "inset-y-0 left-1/2 -translate-x-1/2 w-1 h-8"
-        }`}
-      />
-    </PanelResizeHandle>
+      className={`relative z-10 shrink-0 bg-border transition-colors hover:bg-ring/70 focus-visible:bg-ring ${isVertical ? "h-px after:absolute after:inset-x-0 after:-inset-y-1" : "w-px after:absolute after:inset-y-0 after:-inset-x-1"}`}
+    />
   );
 
   return (
-    <div ref={editorContainerRef} className="flex h-full relative">
+    <div
+      ref={editorContainerRef}
+      className="relative flex h-full overflow-hidden rounded-lg border bg-card"
+    >
       {isMobile === undefined ? null : isMobile ? (
         /* Mobile layout (vertical) */
         <div className="flex flex-col h-full w-full">
@@ -383,6 +398,7 @@ function Editor() {
         <div className="flex h-full w-full">
           <PanelGroup id="editors-desktop" direction="horizontal" className="h-full">
             <InputPanel
+              defaultSize={enableDeps && bundleResult ? 35 : 50}
               inputFiles={inputFiles}
               activeInputFile={activeInputFile}
               setActiveInputFile={setActiveInputFile}
@@ -395,6 +411,7 @@ function Editor() {
             />
             <ResizeHandle isVertical={false} />
             <OutputPanel
+              defaultSize={enableDeps && bundleResult ? 35 : 50}
               bundleResult={bundleResult}
               activeOutputFile={activeOutputFile}
               setActiveOutputFile={setActiveOutputFile}
@@ -409,7 +426,13 @@ function Editor() {
             {enableDeps && bundleResult && (
               <>
                 <ResizeHandle isVertical={false} />
-                <Panel id="dependencies" defaultSize={25} minSize={15} className="min-h-0">
+                <Panel
+                  id="dependencies"
+                  order={2}
+                  defaultSize={30}
+                  minSize={20}
+                  className="workspace-panel"
+                >
                   <DependencyPanel
                     modules={bundleResult.modules}
                     chunks={bundleResult.chunks}

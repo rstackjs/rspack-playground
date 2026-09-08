@@ -2,9 +2,11 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RspackChunkGroupInfo, RspackChunkInfo } from "@/lib/bundle/dependency";
 import { cn } from "@/lib/utils";
+import GraphControls, { useGraphRenderScale } from "./GraphControls";
 import {
   buildCurvedPath,
   clampScale,
+  getGraphFrame,
   getSvgPoint,
   labelFromGraphText,
   projectPointToRect,
@@ -479,6 +481,22 @@ export default function ChunkGraphCanvas({
     };
   }, []);
 
+  const frame = useMemo(
+    () =>
+      getGraphFrame(
+        graph.nodes.map((node) => ({
+          position: layout.positions[node.id] ?? { x: 0, y: 0 },
+          width: node.width,
+          height: node.height,
+        })),
+      ),
+    [graph.nodes, layout.positions],
+  );
+
+  const renderScale = useGraphRenderScale(svgRef, frame, view.scale);
+  const compact = renderScale < 0.7;
+  const labelSize = Math.min(24, 12 / renderScale);
+
   const positionedNodes = useMemo(() => {
     return graph.nodes.map((node) => ({
       ...node,
@@ -591,11 +609,19 @@ export default function ChunkGraphCanvas({
   };
 
   const updateScale = (factor: number) => {
-    setView((current) => ({
-      scale: clampScale(current.scale * factor),
-      panX: current.panX,
-      panY: current.panY,
-    }));
+    const svg = svgRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const center = getSvgPoint(svg, rect.x + rect.width / 2, rect.y + rect.height / 2);
+    if (!center) return;
+    setView((current) => {
+      const scale = clampScale(current.scale * factor);
+      return {
+        scale,
+        panX: center.x - ((center.x - current.panX) * scale) / current.scale,
+        panY: center.y - ((center.y - current.panY) * scale) / current.scale,
+      };
+    });
   };
 
   if (graph.nodes.length === 0) {
@@ -612,54 +638,28 @@ export default function ChunkGraphCanvas({
   }
 
   return (
-    <div className={cn("rounded-lg border bg-background/70", className)}>
-      <div className="flex items-center justify-between border-b px-3 py-2">
-        <div className="text-sm font-medium">Chunk Graph</div>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => updateScale(1.15)}
-            className="rounded-md border px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent"
-          >
-            +
-          </button>
-          <button
-            type="button"
-            onClick={() => updateScale(0.87)}
-            className="rounded-md border px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent"
-          >
-            -
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setView({ panX: 0, panY: 0, scale: 1 });
-              setNodeOverrides({});
-            }}
-            className="rounded-md border px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent"
-          >
-            Reset
-          </button>
-        </div>
+    <div className={cn("overflow-hidden rounded-md border bg-card", className)}>
+      <div className="flex h-11 items-center justify-between gap-2 border-b bg-muted/40 px-3">
+        <h3 className="text-[11px] font-medium">Chunk groups</h3>
+        <GraphControls
+          scale={view.scale}
+          onZoom={updateScale}
+          onReset={() => {
+            setView({ panX: 0, panY: 0, scale: 1 });
+            setNodeOverrides({});
+          }}
+        />
       </div>
 
-      <div className="h-[420px] overflow-hidden">
+      <div className="graph-stage h-[360px] overflow-hidden">
         <svg
           ref={svgRef}
-          viewBox={`0 0 ${layout.width} ${layout.height}`}
-          className="h-full w-full touch-none select-none overscroll-none"
+          viewBox={`${frame.x} ${frame.y} ${frame.width} ${frame.height}`}
+          className="h-full w-full touch-none select-none overscroll-none cursor-grab active:cursor-grabbing"
+          aria-label="Chunk groups interactive canvas"
           onPointerDown={handleCanvasPointerDown}
         >
           <defs>
-            <pattern id="chunk-graph-grid" width="32" height="32" patternUnits="userSpaceOnUse">
-              <path
-                d="M 32 0 L 0 0 0 32"
-                fill="none"
-                stroke="currentColor"
-                strokeOpacity="0.08"
-                strokeWidth="1"
-              />
-            </pattern>
             <marker
               id="chunk-graph-arrow"
               markerWidth="6"
@@ -669,17 +669,16 @@ export default function ChunkGraphCanvas({
               orient="auto"
               markerUnits="userSpaceOnUse"
             >
-              <path d="M 0 0 L 6 3 L 0 6 z" fill="#3b82f6" />
+              <path d="M 0 0 L 6 3 L 0 6 z" fill="var(--graph-edge)" />
             </marker>
           </defs>
 
           <rect
-            x="0"
-            y="0"
-            width={layout.width}
-            height={layout.height}
-            fill="url(#chunk-graph-grid)"
-            className="text-foreground"
+            x={frame.x}
+            y={frame.y}
+            width={frame.width}
+            height={frame.height}
+            fill="transparent"
             onPointerDown={handleCanvasPointerDown}
           />
 
@@ -694,14 +693,14 @@ export default function ChunkGraphCanvas({
                 target.position,
                 source.width,
                 source.height,
-                6,
+                -2,
               );
               const end = projectPointToRect(
                 target.position,
                 source.position,
                 target.width,
                 target.height,
-                12,
+                -8,
               );
               const isCurrent =
                 currentGroupIdSet.has(edge.sourceId) || currentGroupIdSet.has(edge.targetId);
@@ -711,9 +710,9 @@ export default function ChunkGraphCanvas({
                   key={edge.id}
                   d={buildCurvedPath(start, end)}
                   fill="none"
-                  stroke="rgba(59, 130, 246, 0.45)"
+                  stroke="var(--graph-edge)"
                   strokeWidth={isCurrent ? 2.6 : 1.6}
-                  strokeOpacity={isCurrent ? 0.95 : 0.45}
+                  strokeOpacity={isCurrent ? 1 : 0.8}
                   markerEnd="url(#chunk-graph-arrow)"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -729,22 +728,19 @@ export default function ChunkGraphCanvas({
                   key={node.id}
                   transform={`translate(${node.position.x} ${node.position.y})`}
                   onPointerDown={(event) => handleGroupPointerDown(event, node.id)}
-                  className="cursor-grab active:cursor-grabbing"
+                  className="graph-node cursor-grab active:cursor-grabbing"
                 >
+                  <title>{node.name}</title>
                   <rect
                     x={-node.width / 2}
                     y={-node.height / 2}
                     width={node.width}
                     height={node.height}
-                    rx="18"
-                    ry="18"
-                    strokeWidth={isCurrentGroup ? 2.8 : 1.5}
-                    className={cn(
-                      "transition-colors",
-                      isCurrentGroup
-                        ? "fill-primary/10 stroke-primary"
-                        : "fill-muted/10 stroke-border",
-                    )}
+                    rx="8"
+                    ry="8"
+                    strokeWidth={isCurrentGroup ? 1.5 : 1}
+                    className="graph-node-surface"
+                    data-selected={isCurrentGroup}
                   />
                   <line
                     x1={-node.width / 2}
@@ -757,42 +753,46 @@ export default function ChunkGraphCanvas({
                   <text
                     x={-node.width / 2 + 16}
                     y={-node.height / 2 + 24}
-                    className="fill-foreground text-[13px] font-medium"
+                    className="fill-foreground font-medium"
+                    style={{ fontSize: compact ? labelSize : 13 }}
                   >
-                    {trimGraphLabel(node.name, 34)}
+                    {trimGraphLabel(node.name, compact ? 14 : 23)}
                   </text>
                   <text
                     x={-node.width / 2 + 16}
                     y={-node.height / 2 + 42}
-                    className="fill-muted-foreground text-[10px]"
+                    className="fill-muted-foreground"
+                    style={{ fontSize: compact ? Math.min(18, 9 / renderScale) : 10 }}
                   >
-                    {`${node.chunks.length} chunks · ${node.parents.length} in · ${node.children.length} out`}
+                    {compact
+                      ? `${node.initial ? "Initial" : "Async"} · ${node.chunks.length} ${node.chunks.length === 1 ? "chunk" : "chunks"}`
+                      : `${node.chunks.length} chunks · ${node.parents.length} in · ${node.children.length} out`}
                   </text>
-                  <rect
-                    x={node.width / 2 - 68}
-                    y={-node.height / 2 + 14}
-                    width="52"
-                    height="20"
-                    rx="10"
-                    ry="10"
-                    className={cn(
-                      node.initial
-                        ? "fill-primary/15 stroke-primary/35"
-                        : "fill-muted stroke-border",
-                    )}
-                    strokeWidth="1"
-                  />
-                  <text
-                    x={node.width / 2 - 42}
-                    y={-node.height / 2 + 27}
-                    textAnchor="middle"
-                    className={cn(
-                      "text-[10px] font-medium",
-                      node.initial ? "fill-primary" : "fill-muted-foreground",
-                    )}
-                  >
-                    {node.initial ? "initial" : "async"}
-                  </text>
+                  {!compact && (
+                    <>
+                      <rect
+                        x={node.width / 2 - 68}
+                        y={-node.height / 2 + 14}
+                        width="52"
+                        height="20"
+                        rx="4"
+                        ry="4"
+                        className="fill-muted stroke-border"
+                        strokeWidth="1"
+                      />
+                      <text
+                        x={node.width / 2 - 42}
+                        y={-node.height / 2 + 27}
+                        textAnchor="middle"
+                        className={cn(
+                          "text-[10px] font-medium",
+                          node.initial ? "fill-chart-2" : "fill-muted-foreground",
+                        )}
+                      >
+                        {node.initial ? "initial" : "async"}
+                      </text>
+                    </>
+                  )}
 
                   {node.chunks.length > 0 ? (
                     node.chunks.map((chunk, index) => {
@@ -809,22 +809,27 @@ export default function ChunkGraphCanvas({
                           key={`${node.id}-${chunk.id}`}
                           transform={`translate(${-node.width / 2 + GROUP_PADDING} ${rowY})`}
                         >
+                          <title>{[chunk.name, ...chunk.files].join("\n")}</title>
                           <rect
                             x="0"
                             y="0"
                             width={node.width - GROUP_PADDING * 2}
                             height={CHUNK_ROW_HEIGHT}
-                            rx="12"
-                            ry="12"
+                            rx="5"
+                            ry="5"
                             strokeWidth={isSelectedChunk || isCurrentChunk ? 2 : 1}
-                            className={cn(
-                              "cursor-pointer transition-colors",
-                              isSelectedChunk
-                                ? "fill-primary/12 stroke-primary"
-                                : isCurrentChunk
-                                  ? "fill-primary/6 stroke-primary/40"
-                                  : "fill-background stroke-border",
-                            )}
+                            className="graph-node-surface cursor-pointer"
+                            data-selected={isSelectedChunk || isCurrentChunk}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Inspect chunk ${chunk.name}`}
+                            aria-pressed={isSelectedChunk}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                onSelectChunk?.(chunk.id);
+                              }
+                            }}
                             onPointerDown={(event) => {
                               event.stopPropagation();
                             }}
@@ -835,29 +840,32 @@ export default function ChunkGraphCanvas({
                           />
                           <text
                             x="12"
-                            y="15"
-                            className="fill-foreground text-[11px] font-medium"
+                            y={compact ? 27 : 15}
+                            className="fill-foreground font-medium"
+                            style={{ fontSize: compact ? labelSize : 11 }}
                             pointerEvents="none"
                           >
-                            {trimGraphLabel(labelFromGraphText(chunk.name), 28)}
+                            {trimGraphLabel(labelFromGraphText(chunk.name), compact ? 18 : 28)}
                           </text>
-                          <text
-                            x="12"
-                            y="29"
-                            className="fill-muted-foreground text-[10px]"
-                            pointerEvents="none"
-                          >
-                            {`${chunk.modules.length} modules${chunk.files.length > 0 ? ` · ${chunk.files[0]}` : ""}`}
-                          </text>
-                          {chunk.entry ? (
+                          {!compact && (
+                            <text
+                              x="12"
+                              y="29"
+                              className="fill-muted-foreground text-[10px]"
+                              pointerEvents="none"
+                            >
+                              {`${chunk.modules.length} modules${chunk.files.length > 0 ? ` · ${chunk.files[0]}` : ""}`}
+                            </text>
+                          )}
+                          {chunk.entry && !compact ? (
                             <>
                               <rect
                                 x={node.width - GROUP_PADDING * 2 - 56}
                                 y="9"
                                 width="44"
                                 height="20"
-                                rx="10"
-                                ry="10"
+                                rx="4"
+                                ry="4"
                                 className="fill-muted stroke-border"
                                 strokeWidth="1"
                                 pointerEvents="none"
@@ -892,7 +900,7 @@ export default function ChunkGraphCanvas({
         </svg>
       </div>
 
-      <div className="border-t px-3 py-2 text-[11px] text-muted-foreground">
+      <div className="break-all border-t px-3 py-2.5 text-[10px] leading-relaxed text-muted-foreground">
         {selectedChunk ? (
           <span>
             Selected chunk:{" "}

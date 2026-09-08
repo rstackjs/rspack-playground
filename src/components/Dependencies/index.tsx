@@ -1,3 +1,4 @@
+import { GitBranch, Layers, Network } from "lucide-react";
 import { useMonaco } from "@monaco-editor/react";
 import type * as Monaco from "monaco-editor";
 import type { ReactNode, RefObject } from "react";
@@ -66,11 +67,11 @@ function categoryLabel(category: RspackModuleCategory) {
 function categoryClassName(category: RspackModuleCategory) {
   switch (category) {
     case "source":
-      return "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
+      return "border-border bg-muted text-chart-2";
     case "dependency":
-      return "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300";
+      return "border-border bg-muted text-chart-1";
     case "runtime":
-      return "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300";
+      return "border-border bg-muted text-chart-3";
   }
 }
 
@@ -111,7 +112,7 @@ function Tag({ className, children }: { className?: string; children: ReactNode 
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-medium",
+        "inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-medium",
         className,
       )}
     >
@@ -130,10 +131,14 @@ function StatCard({
   hint?: string;
 }) {
   return (
-    <div className="rounded-md border bg-background/70 p-2">
+    <div className="min-w-0 px-1 py-1">
       <div className="text-[11px] text-muted-foreground">{label}</div>
-      <div className="mt-1 text-sm font-semibold">{value}</div>
-      {hint ? <div className="mt-1 text-[10px] text-muted-foreground">{hint}</div> : null}
+      <div className="mt-1 text-lg font-medium tracking-tight tabular-nums">{value}</div>
+      {hint ? (
+        <div className="mt-1 line-clamp-2 break-all text-[10px] text-muted-foreground" title={hint}>
+          {hint}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -850,7 +855,7 @@ export default function DependencyPanel({
 
     return (
       <div className="flex min-h-full flex-col">
-        <div className="border-b p-3">
+        <div className="border-b p-4">
           <ModuleGraphCanvas
             modules={modules}
             currentModuleId={currentModule?.id ?? null}
@@ -859,7 +864,7 @@ export default function DependencyPanel({
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-2 border-b p-3">
+        <div className="grid grid-cols-2 gap-2 border-b p-4">
           <StatCard
             label="Chunks"
             value={currentChunks.length}
@@ -881,22 +886,19 @@ export default function DependencyPanel({
         </div>
 
         {!currentModule ? (
-          <div className="border-b p-3 text-sm text-muted-foreground">
-            Current file is not part of the module graph. The graph above still shows the bundled
-            module relationships; click a graph node to inspect its chunk placement and
-            dependencies.
+          <div className="border-b px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+            This file is outside the module graph. Select a node to inspect its dependencies.
           </div>
         ) : null}
 
-        {inspectedModule && !isInspectingActiveFile ? (
-          <div className="border-b p-3 text-sm text-muted-foreground">
-            You are inspecting a graph-selected module. Source-range highlighting and import hover
-            sync only work when that module's file is active in the editor.
+        {currentModule && inspectedModule && !isInspectingActiveFile ? (
+          <div className="border-b px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+            Open this module in the editor to see source highlights and import links.
           </div>
         ) : null}
 
         {inspectedModule && currentGroups.length > 0 ? (
-          <div className="border-b p-3">
+          <div className="border-b p-4">
             <div className="text-xs font-semibold text-muted-foreground">Module chunk groups</div>
             <div className="mt-2 flex flex-wrap gap-1">
               {currentGroups.map((group) =>
@@ -958,7 +960,7 @@ export default function DependencyPanel({
 
     return (
       <div className="flex min-h-full flex-col">
-        <div className="border-b p-3">
+        <div className="border-b p-4">
           <ChunkGraphCanvas
             chunkGroups={visibleGroups}
             chunks={visibleChunks}
@@ -971,8 +973,8 @@ export default function DependencyPanel({
         </div>
 
         {selectedChunk ? (
-          <div className="border-b p-3">
-            <div className="rounded-lg border bg-background/70 p-3">
+          <div className="border-b p-4">
+            <div className="rounded-md border bg-card p-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="truncate text-sm font-medium">{selectedChunk.name}</div>
@@ -1022,17 +1024,13 @@ export default function DependencyPanel({
               ) : null}
             </div>
           </div>
-        ) : (
-          <div className="border-b p-3 text-sm text-muted-foreground">
-            Click a chunk in the graph above to inspect the modules bundled into it.
-          </div>
-        )}
+        ) : null}
 
         <div className="p-3">
           {selectedChunk ? (
-            <div className="rounded-lg border bg-background/70">
+            <div className="rounded-md border bg-card">
               <div className="border-b px-3 py-2">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-2">
                   <div className="text-xs font-semibold text-muted-foreground">
                     Chunk modules ({filteredSelectedChunkModules.length}
                     {chunkSearchQuery ? ` / ${selectedChunk.modules.length} matched` : ""})
@@ -1042,7 +1040,7 @@ export default function DependencyPanel({
                     value={chunkSearch}
                     onChange={(event) => setChunkSearch(event.target.value)}
                     placeholder="Search modules in chunk"
-                    className="h-8 rounded-md border bg-background px-3 text-xs outline-none transition-colors placeholder:text-muted-foreground focus:border-primary sm:w-56"
+                    className="h-8 w-full min-w-0 rounded-md border bg-muted/30 px-2.5 text-xs outline-none transition-colors placeholder:text-muted-foreground focus:border-ring"
                   />
                 </div>
               </div>
@@ -1069,7 +1067,9 @@ export default function DependencyPanel({
                               </Tag>
                             ) : null}
                           </div>
-                          <div className="mt-1 truncate text-xs font-medium">{module.name}</div>
+                          <div className="mt-1 break-all text-xs font-medium" title={module.name}>
+                            {module.name}
+                          </div>
                           {module.path && module.path !== module.name ? (
                             <div className="mt-1 truncate text-[11px] text-muted-foreground">
                               {module.path}
@@ -1096,49 +1096,53 @@ export default function DependencyPanel({
     <>
       <DependencyLines lines={viewMode === "module" ? lines : []} />
       <div className="flex h-full min-h-0 flex-col">
-        <div className="border-b bg-muted/30 p-2">
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <div className="text-sm font-medium">Graph Explorer</div>
-              <div className="text-[11px] text-muted-foreground">
-                {modules.length} modules · {chunks.length} chunks · {chunkGroups.length} groups
-                {currentModule ? ` · active: ${currentModule.name}` : ""}
-              </div>
-            </div>
-            {viewMode === "module" && totalDeps > 0 && isInspectingActiveFile ? (
+        <div className="workspace-panel-heading">
+          <div className="flex min-w-0 items-center gap-2">
+            <Network className="size-3.5 shrink-0 text-muted-foreground" />
+            <h2>Dependencies</h2>
+            <span className="ml-1 text-[10px] font-normal tabular-nums text-muted-foreground">
+              {modules.length}
+            </span>
+          </div>
+          {viewMode === "module" && totalDeps > 0 && isInspectingActiveFile ? (
+            <button
+              type="button"
+              onClick={handleShowAll}
+              aria-pressed={showAll}
+              className={cn(
+                "rounded px-1.5 py-1 text-[10px] font-normal transition-colors hover:bg-accent",
+                showAll ? "text-foreground" : "text-muted-foreground",
+              )}
+            >
+              {showAll ? "Hide links" : "Show links"}
+            </button>
+          ) : null}
+        </div>
+        <div className="flex h-9 shrink-0 items-stretch gap-5 border-b px-4">
+          {(["module", "chunk"] as GraphView[]).map((mode) => {
+            const Icon = mode === "module" ? GitBranch : Layers;
+            return (
               <button
+                key={mode}
                 type="button"
-                onClick={handleShowAll}
+                onClick={() => setViewMode(mode)}
+                aria-label={mode === "module" ? "Module Graph" : "Chunk Graph"}
+                aria-pressed={viewMode === mode}
                 className={cn(
-                  "rounded-md px-2 py-1 text-xs transition-colors",
-                  showAll
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-background text-muted-foreground hover:bg-accent",
+                  "relative flex items-center gap-1.5 text-[11px] transition-colors",
+                  viewMode === mode
+                    ? "text-foreground after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-foreground/60"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {showAll ? "Hide All" : "Show All"}
+                <Icon className="size-3" />
+                {mode === "module" ? "Modules" : "Chunks"}
+                <span className="text-[10px] text-muted-foreground">
+                  {mode === "module" ? modules.length : chunks.length}
+                </span>
               </button>
-            ) : null}
-          </div>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <div className="inline-flex rounded-md border bg-background p-0.5">
-              {(["module", "chunk"] as GraphView[]).map((mode) => (
-                <button
-                  key={mode}
-                  type="button"
-                  onClick={() => setViewMode(mode)}
-                  className={cn(
-                    "rounded-sm px-2 py-1 text-xs font-medium transition-colors",
-                    viewMode === mode
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent",
-                  )}
-                >
-                  {mode === "module" ? "Module Graph" : "Chunk Graph"}
-                </button>
-              ))}
-            </div>
-          </div>
+            );
+          })}
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">

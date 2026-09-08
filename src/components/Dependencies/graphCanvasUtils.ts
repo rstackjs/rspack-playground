@@ -11,6 +11,23 @@ export type ViewState = {
   scale: number;
 };
 
+export function getGraphFrame(nodes: { position: Point; width: number; height: number }[]) {
+  if (!nodes.length) return { x: 0, y: 0, width: 360, height: 240 };
+  let left = Infinity;
+  let top = Infinity;
+  let right = -Infinity;
+  let bottom = -Infinity;
+  for (const node of nodes) {
+    left = Math.min(left, node.position.x - node.width / 2);
+    right = Math.max(right, node.position.x + node.width / 2);
+    top = Math.min(top, node.position.y - node.height / 2);
+    bottom = Math.max(bottom, node.position.y + node.height / 2);
+  }
+  const width = Math.max(right - left + 80, 360);
+  const height = Math.max(bottom - top + 80, 240);
+  return { x: (left + right - width) / 2, y: (top + bottom - height) / 2, width, height };
+}
+
 export const normalizeGraphText = normalizePath;
 
 export function labelFromGraphText(name: string) {
@@ -77,7 +94,11 @@ export function buildCurvedPath(start: Point, end: Point) {
   const deltaX = end.x - start.x;
   const deltaY = end.y - start.y;
   const direction = deltaX >= 0 ? 1 : -1;
-  const horizontalTension = Math.max(Math.abs(deltaX) * 0.4, 52);
+  if (Math.abs(deltaY) > Math.abs(deltaX)) {
+    const verticalTension = deltaY * 0.45;
+    return `M ${start.x} ${start.y} C ${start.x} ${start.y + verticalTension}, ${end.x} ${end.y - verticalTension}, ${end.x} ${end.y}`;
+  }
+  const horizontalTension = Math.abs(deltaX) * 0.45;
   const verticalTension = deltaY * 0.16;
   const control1 = {
     x: start.x + direction * horizontalTension,

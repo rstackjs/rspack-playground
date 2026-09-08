@@ -19,10 +19,10 @@ const App = () => {
   );
 
   return (
-    <ThemeProvider defaultTheme="system">
-      <div className="relative h-screen flex flex-col">
+    <ThemeProvider defaultTheme="dark">
+      <div className="relative flex h-dvh min-h-0 flex-col">
         <Header />
-        <main className="flex-1 overflow-hidden">
+        <main className="min-h-0 flex-1 overflow-hidden px-2 pb-2 sm:px-4 sm:pb-4">
           <Editor />
         </main>
       </div>

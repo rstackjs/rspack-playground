@@ -17,7 +17,7 @@ export function ModeToggle() {
         <Button
           variant="ghost"
           size="icon"
-          className="size-7 rounded-md border-0 bg-transparent text-muted-foreground shadow-none hover:bg-accent/80 hover:text-foreground"
+          className="relative size-7 rounded-md border-0 bg-transparent text-muted-foreground shadow-none hover:bg-accent/80 hover:text-foreground sm:size-8"
           title="Change theme"
           aria-label="Change theme"
         >

@@ -6,13 +6,13 @@ import type {
   RspackModuleDeps,
 } from "@/lib/bundle/dependency";
 import { cn } from "@/lib/utils";
+import GraphControls from "./GraphControls";
 import {
-  buildCurvedPath,
   clampScale,
+  getGraphFrame,
   getSvgPoint,
   labelFromGraphText,
   normalizeGraphText,
-  projectPointToRect,
   trimGraphLabel,
   type Point,
   type ViewState,
@@ -88,21 +88,6 @@ function collectDependencies(module: RspackModuleDeps) {
 
 function isDynamicImportEdge(_dep: RspackDependency, kind: GraphEdge["kind"]) {
   return kind === "block";
-}
-
-function categoryClassName(category: RspackModuleCategory, isActive: boolean) {
-  if (isActive) {
-    return "fill-primary/26 stroke-primary";
-  }
-
-  switch (category) {
-    case "source":
-      return "fill-emerald-300/30 stroke-emerald-300";
-    case "dependency":
-      return "fill-sky-300/30 stroke-sky-300";
-    case "runtime":
-      return "fill-amber-300/30 stroke-amber-300";
-  }
 }
 
 function buildGraph(modules: RspackModuleDeps[]): { nodes: GraphNode[]; edges: GraphEdge[] } {
@@ -454,12 +439,12 @@ function buildLayout(
   };
 }
 
-const MODULE_EDGE_COLOR = "rgba(96, 165, 250, 0.9)";
-const MODULE_EDGE_ARROW_COLOR = "#60a5fa";
+const MODULE_EDGE_COLOR = "var(--graph-edge)";
+const MODULE_EDGE_ARROW_COLOR = "var(--graph-edge)";
 const MODULE_EDGE_MARKER_ID = "module-graph-arrow";
 
-const MODULE_NODE_WIDTH = 156;
-const MODULE_NODE_HEIGHT = 56;
+const MODULE_NODE_WIDTH = 220;
+const MODULE_NODE_HEIGHT = 76;
 
 export default function ModuleGraphCanvas({
   modules,
@@ -561,6 +546,18 @@ export default function ModuleGraphCanvas({
       window.removeEventListener("pointerup", handlePointerUp);
     };
   }, []);
+
+  const frame = useMemo(
+    () =>
+      getGraphFrame(
+        graph.nodes.map((node) => ({
+          position: layout.positions[node.id] ?? { x: 0, y: 0 },
+          width: MODULE_NODE_WIDTH,
+          height: MODULE_NODE_HEIGHT,
+        })),
+      ),
+    [graph.nodes, layout.positions],
+  );
 
   const positionedNodes = useMemo(() => {
     return graph.nodes.map((node) => ({
@@ -678,11 +675,19 @@ export default function ModuleGraphCanvas({
   };
 
   const updateScale = (factor: number) => {
-    setView((current) => ({
-      scale: clampScale(current.scale * factor),
-      panX: current.panX,
-      panY: current.panY,
-    }));
+    const svg = svgRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const center = getSvgPoint(svg, rect.x + rect.width / 2, rect.y + rect.height / 2);
+    if (!center) return;
+    setView((current) => {
+      const scale = clampScale(current.scale * factor);
+      return {
+        scale,
+        panX: center.x - ((center.x - current.panX) * scale) / current.scale,
+        panY: center.y - ((center.y - current.panY) * scale) / current.scale,
+      };
+    });
   };
 
   if (graph.nodes.length === 0) {
@@ -699,54 +704,28 @@ export default function ModuleGraphCanvas({
   }
 
   return (
-    <div className={cn("rounded-lg border bg-background/70", className)}>
-      <div className="flex items-center justify-between border-b px-3 py-2">
-        <div className="text-sm font-medium">Module Graph</div>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => updateScale(1.15)}
-            className="rounded-md border px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent"
-          >
-            +
-          </button>
-          <button
-            type="button"
-            onClick={() => updateScale(0.87)}
-            className="rounded-md border px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent"
-          >
-            -
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setView({ panX: 0, panY: 0, scale: 1 });
-              setNodeOverrides({});
-            }}
-            className="rounded-md border px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent"
-          >
-            Reset
-          </button>
-        </div>
+    <div className={cn("overflow-hidden rounded-md border bg-card", className)}>
+      <div className="flex h-11 items-center justify-between gap-2 border-b bg-muted/40 px-3">
+        <h3 className="text-[11px] font-medium">Module graph</h3>
+        <GraphControls
+          scale={view.scale}
+          onZoom={updateScale}
+          onReset={() => {
+            setView({ panX: 0, panY: 0, scale: 1 });
+            setNodeOverrides({});
+          }}
+        />
       </div>
 
-      <div className="h-[360px] overflow-hidden">
+      <div className="graph-stage h-[340px] overflow-hidden">
         <svg
           ref={svgRef}
-          viewBox={`0 0 ${layout.width} ${layout.height}`}
-          className="h-full w-full touch-none select-none overscroll-none"
+          viewBox={`${frame.x} ${frame.y} ${frame.width} ${frame.height}`}
+          className="h-full w-full touch-none select-none overscroll-none cursor-grab active:cursor-grabbing"
+          aria-label="Module graph interactive canvas"
           onPointerDown={handleCanvasPointerDown}
         >
           <defs>
-            <pattern id="module-graph-grid" width="32" height="32" patternUnits="userSpaceOnUse">
-              <path
-                d="M 32 0 L 0 0 0 32"
-                fill="none"
-                stroke="currentColor"
-                strokeOpacity="0.08"
-                strokeWidth="1"
-              />
-            </pattern>
             <marker
               id={MODULE_EDGE_MARKER_ID}
               markerWidth="6"
@@ -761,12 +740,11 @@ export default function ModuleGraphCanvas({
           </defs>
 
           <rect
-            x="0"
-            y="0"
-            width={layout.width}
-            height={layout.height}
-            fill="url(#module-graph-grid)"
-            className="text-foreground"
+            x={frame.x}
+            y={frame.y}
+            width={frame.width}
+            height={frame.height}
+            fill="transparent"
             onPointerDown={handleCanvasPointerDown}
           />
 
@@ -776,27 +754,29 @@ export default function ModuleGraphCanvas({
               const target = nodeById.get(edge.targetId);
               if (!source || !target) return null;
 
-              const start = projectPointToRect(
-                source.position,
-                target.position,
-                MODULE_NODE_WIDTH,
-                MODULE_NODE_HEIGHT,
-                4,
-              );
-              const end = projectPointToRect(
-                target.position,
-                source.position,
-                MODULE_NODE_WIDTH,
-                MODULE_NODE_HEIGHT,
-                10,
-              );
+              const deltaX = target.position.x - source.position.x;
+              const sameColumn = Math.abs(deltaX) < MODULE_NODE_WIDTH;
+              const direction = sameColumn || deltaX < 0 ? -1 : 1;
+              // Side ports keep long edges clear of other cards in the same column.
+              const start = {
+                x: source.position.x + direction * (MODULE_NODE_WIDTH / 2 + 2),
+                y: source.position.y,
+              };
+              const end = {
+                x: target.position.x + (sameColumn ? -1 : -direction) * (MODULE_NODE_WIDTH / 2 + 8),
+                y: target.position.y,
+              };
+              const laneX = Math.min(start.x, end.x) - 28;
+              const tension = Math.max(Math.abs(end.x - start.x) / 2, 12);
+              const control1X = sameColumn ? laneX : start.x + direction * tension;
+              const control2X = sameColumn ? laneX : end.x - direction * tension;
               return (
                 <path
                   key={edge.id}
-                  d={buildCurvedPath(start, end)}
+                  d={`M ${start.x} ${start.y} C ${control1X} ${start.y}, ${control2X} ${end.y}, ${end.x} ${end.y}`}
                   fill="none"
                   stroke={MODULE_EDGE_COLOR}
-                  strokeWidth={2.3}
+                  strokeWidth={1.5}
                   strokeOpacity={1}
                   markerEnd={`url(#${MODULE_EDGE_MARKER_ID})`}
                   strokeLinecap="round"
@@ -821,29 +801,58 @@ export default function ModuleGraphCanvas({
                       onSelectModule?.(node.id);
                     }
                   }}
-                  className="cursor-grab active:cursor-grabbing"
+                  className="graph-node cursor-grab active:cursor-grabbing"
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Inspect module ${node.name}`}
+                  aria-pressed={isSelected}
+                  data-graph-node={node.id}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedNodeId(node.id);
+                      if (!node.isVirtual) onSelectModule?.(node.id);
+                    }
+                  }}
                 >
+                  <title>{node.name}</title>
                   <rect
                     x={-MODULE_NODE_WIDTH / 2}
                     y={-MODULE_NODE_HEIGHT / 2}
-                    rx="14"
-                    ry="14"
+                    rx="7"
+                    ry="7"
                     width={MODULE_NODE_WIDTH}
                     height={MODULE_NODE_HEIGHT}
-                    strokeWidth={isSelected || isActive ? 2.5 : 1.4}
+                    strokeWidth={isSelected || isActive ? 1.5 : 1}
                     strokeDasharray={node.isVirtual ? "6 5" : undefined}
-                    className={cn(
-                      "transition-colors",
-                      categoryClassName(node.category, isActive || isSelected),
-                    )}
+                    data-selected={isActive || isSelected}
+                    className="graph-node-surface"
                   />
-                  <text
-                    x="0"
-                    y="4"
-                    textAnchor="middle"
-                    className="fill-foreground text-[12px] font-medium"
-                  >
-                    {trimGraphLabel(labelFromGraphText(node.name))}
+                  <circle
+                    cx="-91"
+                    cy="-16"
+                    r="3"
+                    className={
+                      node.category === "source"
+                        ? "fill-chart-2"
+                        : node.category === "dependency"
+                          ? "fill-chart-1"
+                          : "fill-chart-3"
+                    }
+                  />
+                  <text x="-80" y="-12" className="fill-muted-foreground text-[9px]">
+                    {node.category === "dependency"
+                      ? "Package"
+                      : node.category === "runtime"
+                        ? "Runtime"
+                        : "Source"}
+                    {node.isVirtual ? " · reference" : ""}
+                  </text>
+                  <text x="-94" y="9" className="fill-foreground text-[16px] font-medium">
+                    {trimGraphLabel(labelFromGraphText(node.name), 20)}
+                  </text>
+                  <text x="-94" y="26" className="fill-muted-foreground text-[9px] font-mono">
+                    {trimGraphLabel(normalizeGraphText(node.name), 34)}
                   </text>
                 </g>
               );
@@ -852,7 +861,7 @@ export default function ModuleGraphCanvas({
         </svg>
       </div>
 
-      <div className="border-t px-3 py-2 text-[11px] text-muted-foreground">
+      <div className="break-all border-t px-3 py-2.5 text-[10px] leading-relaxed text-muted-foreground">
         {selectedNode ? (
           <span>
             Selected: <span className="font-medium text-foreground">{selectedNode.name}</span>

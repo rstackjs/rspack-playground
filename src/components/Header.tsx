@@ -94,7 +94,7 @@ const replLabels = {
 
 export default function Header() {
   const iconButtonClassName =
-    "size-7 rounded-md border-0 bg-transparent text-muted-foreground shadow-none hover:bg-accent/80 hover:text-foreground";
+    "size-7 rounded-md border-0 bg-transparent text-muted-foreground shadow-none hover:bg-accent hover:text-foreground sm:size-8";
 
   const [rspackVersion, setRspackVersion] = useAtom(rspackVersionAtom);
   const enabledVersions = useAtomValue(enabledRspackVersionsAtom);
@@ -176,16 +176,20 @@ export default function Header() {
   };
 
   return (
-    <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="flex h-12 items-center px-3">
-        <div className="flex max-h-full items-center space-x-2.5">
-          <Logo className="h-8 w-8" />
-          <h1 className="text-base font-semibold">Rspack Playground</h1>
+    <header className="shrink-0 bg-background">
+      <div className="flex min-h-14 flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3 sm:px-5">
+        <div className="flex shrink-0 items-center gap-2.5">
+          <Logo className="size-6" />
+          <span className="text-[13px] font-semibold tracking-tight">Rspack</span>
+          <span className="mx-1 text-sm text-muted-foreground/40" aria-hidden="true">
+            /
+          </span>
+          <h1 className="text-[13px] font-medium text-muted-foreground">Playground</h1>
         </div>
-        <div className="flex-1" />
-        <div className="flex items-center">
-          <div className="flex items-center gap-2 pr-3">
-            <div className="flex items-center space-x-1.5 text-[13px] text-muted-foreground">
+        <div className="hidden flex-1 sm:block" />
+        <div className="ml-auto flex min-w-0 items-center">
+          <div className="flex items-center gap-3 pr-2 sm:pr-3">
+            <div className="hidden items-center gap-1.5 text-[11px] tabular-nums text-muted-foreground lg:flex">
               <Clock className="h-3.5 w-3.5" />
               <span>
                 {isBundling
@@ -204,7 +208,7 @@ export default function Header() {
             >
               <SelectTrigger
                 size="sm"
-                className="h-7 w-[188px] border bg-background/80 px-2.5 text-xs shadow-none hover:bg-background"
+                className="h-7 w-[88px] rounded-md border-border bg-card px-2 text-[11px] shadow-none hover:bg-accent sm:w-[148px]"
                 title={`Switch Rspack version (current: ${selectedVersionDisplay.fullLabel})`}
                 aria-label={`Switch Rspack version, current ${selectedVersionDisplay.fullLabel}`}
               >
@@ -266,7 +270,7 @@ export default function Header() {
             </Select>
           </div>
           <div className="h-4 w-px bg-border" />
-          <div className="flex items-center gap-0.5 px-3">
+          <div className="flex items-center gap-0.5 px-1.5 sm:gap-1 sm:px-3">
             <Button
               variant="ghost"
               size="icon"
@@ -353,7 +357,7 @@ export default function Header() {
             <Preview />
           </div>
           <div className="h-4 w-px bg-border" />
-          <div className="flex items-center gap-0.5 pl-3">
+          <div className="flex items-center gap-0.5 pl-1.5 sm:pl-3">
             <ModeToggle />
             <Button variant="ghost" size="icon" className={iconButtonClassName} asChild>
               <a

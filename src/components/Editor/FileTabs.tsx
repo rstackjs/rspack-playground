@@ -1,6 +1,6 @@
-import { Edit2, Plus, X } from "lucide-react";
+import { Edit2, FileCode2, Plus, X } from "lucide-react";
 import type React from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -39,6 +39,11 @@ export default function FileTabs({
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newFileName, setNewFileName] = useState("");
+  const activeTabRef = useRef<HTMLDivElement>(null);
+  const activeFilename = files[activeIndex]?.filename;
+  useEffect(() => {
+    activeTabRef.current?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [activeIndex, activeFilename]);
 
   const handleStartEdit = (index: number, currentName: string) => {
     if (readonly) return;
@@ -72,18 +77,47 @@ export default function FileTabs({
 
   return (
     <>
-      <div className="flex h-9 items-center border-b bg-muted/50">
-        <div className="flex flex-1 overflow-x-auto scrollbar-thin">
+      <div className="flex h-9 shrink-0 items-center border-b bg-card">
+        <div
+          className="flex min-w-0 flex-1 overflow-x-auto scrollbar-thin"
+          role="tablist"
+          aria-label={readonly ? "Output files" : "Source files"}
+        >
           {files.map((file, index) => (
             <div
               key={getSourceFileIdentity(file)}
               data-filename={file.filename}
+              ref={activeIndex === index ? activeTabRef : undefined}
+              role="tab"
+              aria-selected={activeIndex === index}
+              tabIndex={activeIndex === index ? 0 : -1}
+              title={file.filename}
+              onKeyDown={(event) => {
+                if (event.target !== event.currentTarget) return;
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onFileSelect(index);
+                }
+                if (event.key === "ArrowRight" || event.key === "ArrowLeft") {
+                  event.preventDefault();
+                  const next =
+                    (index + (event.key === "ArrowRight" ? 1 : -1) + files.length) % files.length;
+                  onFileSelect(next);
+                  const tabs =
+                    event.currentTarget.parentElement?.querySelectorAll<HTMLElement>(
+                      '[role="tab"]',
+                    );
+                  tabs?.[next]?.focus();
+                }
+              }}
               className={cn(
-                "group flex h-9 flex-shrink-0 items-center space-x-1.5 border-r px-3 text-sm cursor-pointer hover:bg-accent/50 transition-colors",
-                activeIndex === index && "bg-background border-b-2 border-b-primary",
+                "group relative flex h-9 max-w-[250px] shrink-0 cursor-pointer items-center gap-2 border-r border-border/70 px-3 text-[11px] text-muted-foreground transition-colors hover:bg-muted focus-visible:outline focus-visible:outline-1 focus-visible:-outline-offset-1 focus-visible:outline-ring",
+                activeIndex === index &&
+                  "bg-muted text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-px after:bg-foreground/60",
               )}
               onClick={() => onFileSelect(index)}
             >
+              <FileCode2 className="size-3 shrink-0 opacity-60" />
               <span
                 className="min-w-0 flex-1 truncate"
                 onDoubleClick={() => handleStartEdit(index, file.filename)}
@@ -95,7 +129,8 @@ export default function FileTabs({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100"
+                    className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                    aria-label={`Rename ${file.filename}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleStartEdit(index, file.filename);
@@ -107,7 +142,8 @@ export default function FileTabs({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/20"
+                      className="size-3.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-destructive/20"
+                      aria-label={`Delete ${file.filename}`}
                       onClick={(e) => handleDeleteFile(e, index)}
                     >
                       <X className="size-3" />
@@ -120,7 +156,7 @@ export default function FileTabs({
         </div>
 
         {(!readonly || actions) && (
-          <div className="relative flex items-center gap-1 px-1.5">
+          <div className="relative flex shrink-0 items-center gap-1 px-1.5">
             {!readonly && (
               <Button
                 variant="ghost"
@@ -128,6 +164,7 @@ export default function FileTabs({
                 className="size-6"
                 onClick={() => setShowCreateDialog(true)}
                 title="New file"
+                aria-label="New file"
               >
                 <Plus className="size-3.5" />
               </Button>

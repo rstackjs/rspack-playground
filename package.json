@@ -11,7 +11,8 @@
     "format": "rs fmt",
     "lint": "rs lint",
     "prepare": "rs hooks",
-    "preview": "rs preview"
+    "preview": "rs preview",
+    "test": "node --experimental-strip-types --test tests/*.test.mjs"
   },
   "dependencies": {
     "@monaco-editor/react": "4.7.0",
