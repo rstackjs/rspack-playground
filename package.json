@@ -67,6 +67,6 @@
     "monaco-editor": "^0.57.0",
     "rstack": "^0.8.3",
     "tailwindcss": "^4.3.3",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   }
 }
