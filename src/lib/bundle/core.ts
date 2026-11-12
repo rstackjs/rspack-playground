@@ -99,6 +99,14 @@ function getJsdelivrEsmUrl(packageName: string, version: string, subpath?: strin
   return `https://cdn.jsdelivr.net/npm/${packageName}@${encodeURIComponent(version)}${suffix}/+esm`;
 }
 
+function getEsmShUrl(packageName: string, version: string, deps: Record<string, string> = {}) {
+  const pinnedDeps = Object.entries(deps)
+    .map(([name, depVersion]) => `${name}@${depVersion}`)
+    .join(",");
+  const query = pinnedDeps ? `?deps=${pinnedDeps}` : "";
+  return `https://esm.sh/${packageName}@${version}${query}`;
+}
+
 function getPreferredRspackBrowserModuleExtensions(version: string) {
   const [majorText] = version.split(".", 1);
   const major = Number.parseInt(majorText ?? "", 10);
@@ -286,10 +294,33 @@ async function getRspackBrowserEntryUrls(version: string): Promise<RspackBrowser
     const workerModuleUrl = createBlobModuleUrl(workerSource);
     const wasmUrl = getRspackBrowserUrl(version);
 
-    let rewrittenWasiSource = replaceRequiredImportSource(
-      wasiSource,
+    let wasmRuntimeUrl = getJsdelivrEsmUrl("@napi-rs/wasm-runtime", wasmRuntimeVersion);
+    let rewrittenWasiSource = wasiSource;
+    if (hasImportSource(wasiSource, "@emnapi/runtime")) {
+      const emnapiCoreVersion = manifest.dependencies?.["@emnapi/core"] ?? "";
+      const emnapiRuntimeVersion = manifest.dependencies?.["@emnapi/runtime"] ?? "";
+      if (!emnapiCoreVersion || !emnapiRuntimeVersion) {
+        throw new Error(`Rspack browser ${version} is missing published dependency metadata`);
+      }
+      // The glue creates the emnapi context itself, so @napi-rs/wasm-runtime must run on the
+      // same emnapi version. jsDelivr's +esm resolves these peer deps on its own and cannot be
+      // pinned; esm.sh can.
+      wasmRuntimeUrl = getEsmShUrl("@napi-rs/wasm-runtime", wasmRuntimeVersion, {
+        "@emnapi/core": emnapiCoreVersion,
+        "@emnapi/runtime": emnapiRuntimeVersion,
+      });
+      rewrittenWasiSource = replaceRequiredImportSource(
+        rewrittenWasiSource,
+        "@emnapi/runtime",
+        getEsmShUrl("@emnapi/runtime", emnapiRuntimeVersion),
+        "@emnapi/runtime import",
+      );
+    }
+
+    rewrittenWasiSource = replaceRequiredImportSource(
+      rewrittenWasiSource,
       "@napi-rs/wasm-runtime",
-      getJsdelivrEsmUrl("@napi-rs/wasm-runtime", wasmRuntimeVersion),
+      wasmRuntimeUrl,
       "@napi-rs/wasm-runtime import",
     );
     rewrittenWasiSource = replaceRequiredImportSource(
