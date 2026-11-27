@@ -2,5 +2,16 @@ packages:
   - .
   - sw
 
-ignoredBuiltDependencies:
-  - "@tailwindcss/oxide"
+allowBuilds:
+  "@tailwindcss/oxide": false
+
+minimumReleaseAgeExclude:
+  - "@rslib/*"
+  - "@rstackjs/*"
+  - "rsbuild-plugin-*"
+  - rstack
+
+permissions:
+  rstack:
+    skills:
+      - rstack-cli-docs
